@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Shield, Hash, Send, Image as ImageIcon,
   Copy, CheckCircle2, Terminal, LogOut,
-  Settings, UserPlus, Clock, Check, X, Key, Search, Mic, Square
+  Settings, UserPlus, Clock, Check, X, Key, Search, Mic, Square, Menu
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import {
@@ -82,6 +82,7 @@ export default function App() {
   const [user, setUser] = useState<any>(null);
   const [authReady, setAuthReady] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -553,83 +554,95 @@ export default function App() {
   // ─── Main Chat ────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-screen bg-[#050505]">
-      <div className="flex flex-1 overflow-hidden max-w-6xl mx-auto w-full">
+    <div className="flex h-screen bg-black text-[--fg] font-mono overflow-hidden relative">
+      {/* Mobile Overlay */}
+      <AnimatePresence>
+        {showSidebar && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setShowSidebar(false)}
+            className="fixed inset-0 bg-black/80 z-30 md:hidden backdrop-blur-sm"
+          />
+        )}
+      </AnimatePresence>
 
-        {/* Sidebar */}
-        <aside className="w-64 bg-[#070707] border-r border-[#1a1a1a] hidden md:flex flex-col p-5">
-          {/* Identity */}
-          <div className="mb-6">
-            <p className="tech-label mb-2">Ephemeral Identity</p>
-            <div className="p-3 border border-[#262626] bg-[#0a0a0a]">
-              <p className="text-[--accent] font-mono text-xs font-bold">{identity.alias}</p>
-              <p className="text-[10px] font-mono text-[#404040] break-all mt-1">{identity.id.substring(0, 24)}...</p>
-            </div>
+      {/* Sidebar */}
+      <aside className={cn(
+        "fixed inset-y-0 left-0 w-72 border-r border-[#1a1a1a] bg-[#080808] flex flex-col z-40 transition-transform duration-300 md:relative md:translate-x-0 md:flex md:w-64",
+        showSidebar ? "translate-x-0" : "-translate-x-full"
+      )}>
+        <div className="p-6 border-b border-[#1a1a1a] flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-[--accent] animate-pulse" />
+            <h2 className="text-[11px] font-bold text-[--accent] uppercase tracking-[0.2em]">KryptoAnon</h2>
+          </div>
+          <button onClick={() => setShowSidebar(false)} className="md:hidden text-[--muted]"><X size={16} /></button>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          <div className="p-4 bg-white/5 border-l-2 border-[--accent]">
+            <p className="text-[9px] text-[--muted] uppercase tracking-widest mb-1">Identidade Local</p>
+            <p className="text-xs text-[--fg-bright] truncate">{identity.alias}</p>
+            <p className="text-[9px] text-[#404040] mt-1 break-all">{identity.id.substring(0, 24)}...</p>
           </div>
 
-          {/* Room Info */}
-          <div className="mb-6">
-            <p className="tech-label mb-2">Sala Atual</p>
-            <div className="p-3 border border-[#262626] bg-[#0a0a0a] flex items-center justify-between">
-              <span className="text-xs font-mono text-[--fg-bright] truncate">{roomName}</span>
-              <button onClick={copyRoomId} className="ml-2 text-[--muted] hover:text-[--accent] transition-colors flex-shrink-0">
-                {copied ? <CheckCircle2 size={12} /> : <Copy size={12} />}
-              </button>
-            </div>
-            <p className="text-[9px] font-mono text-[#333] mt-1">{roomHash?.substring(0, 20)}...</p>
-          </div>
-
-          {/* Owner controls */}
-          {roomData?.ownerId === user?.id && (
-            <div className="mb-6">
-              <p className="tech-label mb-2 flex items-center gap-2"><Settings size={10} /> Painel</p>
-              <button
-                onClick={() => setShowConfig(!showConfig)}
-                className="w-full tech-button-muted flex items-center justify-between text-[10px] py-2"
-              >
-                <span className="flex items-center gap-2"><UserPlus size={10} /> Solicitações</span>
-                {pendingRequests.length > 0 && (
-                  <span className="bg-[--accent] text-black text-[9px] px-1.5 py-0.5 rounded-full font-bold">{pendingRequests.length}</span>
-                )}
-              </button>
-            </div>
-          )}
-
-          {/* Console */}
-          <div className="flex-1 min-h-0">
-            <p className="tech-label mb-2 flex items-center gap-2"><Terminal size={10} /> Console</p>
-            <div className="space-y-1 overflow-y-auto h-full max-h-48 font-mono text-[9px]">
-              {logs.map((log, i) => (
-                <div key={i} className={cn('p-1.5 border-l border-[#1a1a1a]', i === 0 ? 'text-[--accent] border-[--accent]/30' : 'text-[#404040]')}>
-                  {log}
-                </div>
+          <div>
+            <h3 className="text-[9px] text-[--muted] uppercase tracking-widest mb-4 px-2">Salas Recentes</h3>
+            <div className="space-y-1">
+              {recentRooms.map(room => (
+                <button
+                  key={room.hash}
+                  onClick={() => { setRoomHash(room.hash); setShowSidebar(false); }}
+                  className={cn(
+                    "w-full text-left p-3 text-xs transition-all border-l-2",
+                    roomHash === room.hash ? "bg-[#111] border-[--accent] text-[--fg-bright]" : "border-transparent text-[--muted] hover:bg-[#111] hover:text-[--fg-bright]"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <span># {room.name}</span>
+                    <Hash size={10} className="opacity-20" />
+                  </div>
+                </button>
               ))}
             </div>
           </div>
+        </div>
 
+        <div className="p-4 border-t border-[#1a1a1a]">
           <button
-            onClick={logout}
-            className="mt-4 py-2.5 bg-[#1a1a1a] text-[--muted] text-[10px] uppercase tracking-widest font-bold border border-[#333] hover:bg-[#222] hover:text-[--fg-bright] transition-colors flex items-center justify-center gap-2"
+            onClick={() => {
+              if (confirm('Sua identidade local será apagada. Continuar?')) {
+                localStorage.removeItem('krypto_alias');
+                window.location.reload();
+              }
+            }}
+            className="w-full flex items-center justify-center gap-2 p-3 text-[10px] text-red-500 hover:bg-red-500/10 transition-colors uppercase tracking-widest"
           >
             <LogOut size={12} /> Encerrar Sessão
           </button>
-        </aside>
+        </div>
+      </aside>
 
-        {/* Main */}
-        <div className="flex-1 flex flex-col min-w-0 relative">
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col min-w-0 relative">
           {/* Header */}
-          <header className="h-14 border-b border-[#1a1a1a] flex items-center justify-between px-6 bg-[#080808] flex-shrink-0">
+          <header className="h-14 border-b border-[#1a1a1a] flex items-center justify-between px-4 md:px-6 bg-[#080808] flex-shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-[--accent] rounded-full shadow-[0_0_6px_var(--accent)] animate-pulse" />
-              <span className="text-[--fg-bright] font-mono text-[11px] tracking-widest uppercase">
-                {roomName} // {roomHash?.substring(0, 8).toUpperCase()}
-              </span>
+              <button onClick={() => setShowSidebar(true)} className="md:hidden text-[--muted] hover:text-white p-2 -ml-2">
+                <Menu size={20} />
+              </button>
+              <div className="flex items-center gap-2">
+                <Hash className="text-[--accent]" size={16} />
+                <h1 className="text-sm font-bold text-[--fg-bright] uppercase tracking-wider truncate max-w-[120px] md:max-w-none">
+                  {roomName}
+                </h1>
+              </div>
             </div>
-            <div className="flex items-center gap-4 text-[10px] font-mono">
+            <div className="flex items-center gap-4 text-[10px] font-mono hidden sm:flex">
               <span className={cn('uppercase', roomData?.ownerId === user?.id ? 'text-[--accent]' : 'text-[--muted]')}>
                 {roomData?.ownerId === user?.id ? 'Proprietário' : 'Membro'}
               </span>
-              <span className="text-[--accent]">● Conectado</span>
+              <span className="text-[--accent]">● Online</span>
             </div>
           </header>
 
@@ -674,6 +687,16 @@ export default function App() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Mini Logs (Mobile friendly) */}
+          <div className="bg-[#080808] border-b border-[#1a1a1a] px-4 py-1.5 flex gap-4 overflow-x-auto no-scrollbar scroll-smooth">
+            {logs.slice(-2).map((log, i) => (
+              <div key={i} className="flex items-center gap-2 whitespace-nowrap">
+                <Terminal size={8} className="text-[--accent]" />
+                <span className="text-[8px] text-[--muted] uppercase tracking-[0.2em]">{log}</span>
+              </div>
+            ))}
+          </div>
 
           {/* Messages */}
           <main className="flex-1 overflow-y-auto p-6 space-y-4 font-mono text-sm bg-[#050505]">
