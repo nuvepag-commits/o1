@@ -1068,9 +1068,15 @@ function MessageItem({ m, isMe, roomKey }: { m: Message, isMe: boolean, roomKey:
     const decrypt = async () => {
       try {
         const plain = await decryptText(m.content, roomKey);
-        if (isMounted) setDecrypted(plain);
+        if (isMounted) {
+          setDecrypted(plain);
+          setError(false); // Clear error state on success
+        }
       } catch (err) {
-        if (isMounted) setError(true);
+        if (isMounted) {
+          setError(true);
+          setDecrypted(null);
+        }
       }
     };
 
