@@ -83,22 +83,6 @@ export default function App() {
   const [authReady, setAuthReady] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Debug: Check for missing credentials
-  if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-    return (
-      <div className="min-h-screen bg-black text-red-500 font-mono flex items-center justify-center p-10 text-center">
-        <div>
-          <h1 className="text-2xl mb-4 font-bold uppercase">⚠️ Erro de Configuração</h1>
-          <p className="mb-2">As variáveis de ambiente do Supabase não foram detectadas.</p>
-          <p className="text-xs text-gray-500 mb-6">Verifique se VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY estão configuradas no painel do Vercel/Netlify.</p>
-          <button onClick={() => window.location.reload()} className="px-4 py-2 bg-red-900/30 border border-red-500 text-red-400 hover:bg-red-500 hover:text-black transition-all">
-            RECARREGAR PÁGINA
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   /** Ensures we have an authenticated Supabase user. Returns the user or throws. */
   const getOrEnsureAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();

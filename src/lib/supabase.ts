@@ -1,11 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Hardcoded for direct deployment success. 
+// Security is handled via Supabase RLS policies and E2EE.
+const supabaseUrl = 'https://lbublvuplzgcuwlribth.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxidWJsdnVwbHpnY3V3bHJpYnRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwMDQyOTQsImV4cCI6MjA5MjU4MDI5NH0.hIbEBXS7H3qJeqQGq31vnDCshcL_-LzZz-G2P3pYYJw';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase credentials missing! The app will not function correctly. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment.');
-}
-
-// Create client only if URL is provided, otherwise export a dummy or let it be handled
-export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder');
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
