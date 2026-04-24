@@ -140,7 +140,7 @@ export default function App() {
     setDecryptedMessages({}); // Clear cache to force re-decryption with the current key
 
     messages.forEach(async m => {
-      if (m.type !== 'text') return;
+      // Allow decryption for text, image, and audio
       try {
         const plain = await decryptText(m.content, roomKey);
         setDecryptedMessages(prev => ({ ...prev, [m.id]: plain }));
