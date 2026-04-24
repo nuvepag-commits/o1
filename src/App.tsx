@@ -408,11 +408,10 @@ export default function App() {
     }
   };
 
-  const createRoom = async (displayName: string, password?: string) => {
+  const createRoom = async (displayName: string, password?: string, msgKey?: string) => {
     const name = displayName.trim() || 'Nova Sala';
     try {
       const currentUser = await getOrEnsureAuth();
-      // Generate a random unique ID (12 chars)
       const randomId = Math.random().toString(36).substring(2, 8) + '-' + Math.random().toString(36).substring(2, 8);
       const hashedPass = password?.trim() ? await hashString(password.trim()) : null;
       
@@ -429,8 +428,14 @@ export default function App() {
 
       if (insertError) throw insertError;
 
-      const derivedKey = await deriveRoomKey(randomId, password?.trim());
-      setRoomKey(derivedKey);
+      // Triple Verification: If msgKey is provided, use it for encryption.
+      // Otherwise, the owner will have to set it later in the sidebar.
+      if (msgKey?.trim()) {
+        const derivedKey = await deriveRoomKey(msgKey.trim(), randomId);
+        setRoomKey(derivedKey);
+        setManualKey(msgKey.trim());
+      }
+
       setRoomName(name);
       setRoomPassword(password?.trim() || '');
       setRoomHash(randomId);
@@ -761,30 +766,34 @@ export default function App() {
             </div>
           </div>
 
-          <div className="p-4 bg-white/5 border-l-2 border-orange-500">
-            <p className="text-[9px] text-orange-500 uppercase tracking-widest mb-3 font-bold">Segurança Mensagens</p>
+          <div className="p-4 bg-orange-500/5 border-l-2 border-orange-500">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-5 h-5 rounded-full bg-orange-500 text-black flex items-center justify-center text-[10px] font-bold">3</div>
+              <p className="text-[9px] text-orange-500 uppercase tracking-widest font-bold">Chave de Mensagens (E2EE)</p>
+            </div>
             <div className="space-y-2">
               <input
                 type="password"
-                placeholder="Chave de Descriptografia"
-                className="w-full bg-black border border-[#1a1a1a] text-[10px] px-2 py-1.5 focus:border-orange-500 outline-none"
-                value={roomPassword}
-                onChange={e => setRoomPassword(e.target.value)}
+                placeholder="Insira a chave do dono..."
+                className="w-full bg-black border border-[#1a1a1a] text-[10px] px-2 py-1.5 focus:border-orange-500 outline-none text-orange-200"
+                value={manualKey}
+                onChange={e => setManualKey(e.target.value)}
               />
               <button
                 onClick={async () => {
-                  if (roomHash) {
-                    const k = await deriveRoomKey(roomHash, roomPassword);
+                  if (roomHash && manualKey) {
+                    addLog('SINCROZINANDO CHAVE E2EE...');
+                    const k = await deriveRoomKey(manualKey, roomHash);
                     setRoomKey(k);
-                    addLog('CHAVE DE SEGURANÇA ATUALIZADA.');
+                    addLog('CHAVE APLICADA. MENSAGENS LIBERADAS.');
                   }
                 }}
                 className="w-full bg-orange-500/10 hover:bg-orange-500/20 text-orange-500 text-[9px] py-1.5 transition-all border border-orange-500/20 font-bold tracking-widest uppercase"
               >
-                Aplicar Chave
+                Liberar Mensagens
               </button>
-              <p className="text-[8px] text-[#404040] leading-tight mt-1">
-                Se as mensagens aparecerem como 'Chave Inválida', peça a chave ao dono e aplique aqui.
+              <p className="text-[8px] text-[#404040] leading-tight mt-1 italic">
+                O acesso à sala não garante a leitura. Digite a chave fornecida pelo administrador acima.
               </p>
             </div>
           </div>

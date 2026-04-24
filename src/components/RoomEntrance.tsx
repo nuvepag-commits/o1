@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Hash, Key, Clock, Trash2, Plus, LogIn } from 'lucide-react';
+import { Hash, Key, Clock, Trash2, Plus, LogIn, Lock } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export interface RecentRoom {
@@ -15,13 +15,14 @@ interface Props {
   passValue: string;
   onPassChange: (v: string) => void;
   onJoin: (id: string, pass?: string) => void;
-  onCreate: (name: string, pass?: string) => void;
+  onCreate: (name: string, pass?: string, msgKey?: string) => void;
   recentRooms: RecentRoom[];
   onRemoveRecent: (hash: string) => void;
 }
 
 export function RoomEntrance({ value, onChange, passValue, onPassChange, onJoin, onCreate, recentRooms, onRemoveRecent }: Props) {
   const [mode, setMode] = useState<'join' | 'create'>('join');
+  const [messageKey, setMessageKey] = useState('');
   const [search, setSearch] = useState('');
 
   const filtered = recentRooms.filter(r =>
@@ -73,7 +74,7 @@ export function RoomEntrance({ value, onChange, passValue, onPassChange, onJoin,
           onSubmit={e => {
             e.preventDefault();
             if (mode === 'join') onJoin(value, passValue);
-            else onCreate(value, passValue);
+            else onCreate(value, passValue, messageKey);
           }}
           className="space-y-5"
         >
@@ -92,7 +93,9 @@ export function RoomEntrance({ value, onChange, passValue, onPassChange, onJoin,
           </div>
 
           <div>
-            <label className="tech-label block">Senha (Opcional)</label>
+            <label className="tech-label block">
+              {mode === 'join' ? 'Senha da Sala' : 'Definir Senha de Entrada (Opcional)'}
+            </label>
             <div className="relative">
               <input
                 type="password"
@@ -103,11 +106,36 @@ export function RoomEntrance({ value, onChange, passValue, onPassChange, onJoin,
               />
               <Key size={14} className="absolute right-3 top-3.5 text-[#404040]" />
             </div>
+            {mode === 'create' && (
+              <p className="text-[9px] text-[#404040] mt-1 uppercase tracking-wider">Usada apenas para permitir que membros peçam acesso.</p>
+            )}
           </div>
+
+          {mode === 'create' && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="space-y-2 pt-2 border-t border-white/5"
+            >
+              <label className="tech-label block text-[--accent]">Definir Chave de Mensagens (E2EE)</label>
+              <div className="relative">
+                <input
+                  type="password"
+                  placeholder="CHAVE SECRETA PARA CRIPTOGRAFIA"
+                  className="w-full tech-input pr-10 border-[--accent]/30 focus:border-[--accent]"
+                  value={messageKey}
+                  onChange={e => setMessageKey(e.target.value)}
+                  required
+                />
+                <Lock size={14} className="absolute right-3 top-3.5 text-[--accent]/50" />
+              </div>
+              <p className="text-[9px] text-[--muted] uppercase tracking-wider">Esta chave NUNCA é enviada ao servidor. Guarde-a bem!</p>
+            </motion.div>
+          )}
 
           <div className="pt-2">
             <button type="submit" className="w-full tech-button py-4 font-bold text-sm tracking-[0.2em] shadow-[0_0_20px_rgba(var(--accent-rgb),0.2)] uppercase">
-              {mode === 'join' ? 'Conectar ao Canal' : 'Gerar ID Secreto'}
+              {mode === 'join' ? 'Pedir Acesso ao Canal' : 'Criar Canal Seguro'}
             </button>
           </div>
         </form>
