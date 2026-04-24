@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Hash, Key, Clock, Trash2, Plus, LogIn, Lock } from 'lucide-react';
+import { Hash, Key, Clock, Trash2, Plus, LogIn, Lock, Camera, X } from 'lucide-react';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 import { cn } from '../lib/utils';
+import { AnimatePresence } from 'motion/react';
 
 export interface RecentRoom {
   name: string;
@@ -24,6 +26,26 @@ export function RoomEntrance({ value, onChange, passValue, onPassChange, onJoin,
   const [mode, setMode] = useState<'join' | 'create'>('join');
   const [messageKey, setMessageKey] = useState('');
   const [search, setSearch] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
+
+  const startScanner = () => {
+    setShowScanner(true);
+    setTimeout(() => {
+      const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }, false);
+      scanner.render((decodedText) => {
+        // Handle URL or raw ID
+        let id = decodedText;
+        if (id.includes('#')) {
+          id = id.split('#').pop() || id;
+        }
+        onChange(id);
+        scanner.clear();
+        setShowScanner(false);
+      }, (error) => {
+        // console.warn(error);
+      });
+    }, 100);
+  };
 
   const filtered = recentRooms.filter(r =>
     r.name.toLowerCase().includes(search.toLowerCase()) || r.hash.toLowerCase().includes(search.toLowerCase())
@@ -36,17 +58,49 @@ export function RoomEntrance({ value, onChange, passValue, onPassChange, onJoin,
         animate={{ opacity: 1, y: 0 }}
         className="tech-card p-8 w-full max-w-lg border-t-2 border-t-[--accent]"
       >
-        <div className="flex items-center gap-3 mb-8">
-          <Hash className="text-[--accent]" size={32} />
-          <div>
-            <h2 className="text-xl font-mono uppercase tracking-tighter font-bold text-[--fg-bright]">
-              {mode === 'join' ? 'Acessar Canal' : 'Criar Canal'}
-            </h2>
-            <p className="text-xs font-mono text-[--muted]">
-              {mode === 'join' ? 'Insira o ID secreto para entrar.' : 'Crie um novo canal criptografado.'}
-            </p>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <Hash className="text-[--accent]" size={32} />
+            <div>
+              <h2 className="text-xl font-mono uppercase tracking-tighter font-bold text-[--fg-bright]">
+                {mode === 'join' ? 'Acessar Canal' : 'Criar Canal'}
+              </h2>
+              <p className="text-xs font-mono text-[--muted]">
+                {mode === 'join' ? 'Insira o ID secreto para entrar.' : 'Crie um novo canal criptografado.'}
+              </p>
+            </div>
           </div>
+          {mode === 'join' && (
+            <button
+              onClick={startScanner}
+              className="p-3 bg-[--accent]/10 text-[--accent] rounded-full hover:bg-[--accent]/20 transition-all border border-[--accent]/20"
+              title="Ler QR Code"
+            >
+              <Camera size={20} />
+            </button>
+          )}
         </div>
+
+        {/* Scanner Modal */}
+        <AnimatePresence>
+          {showScanner && (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/95 z-[200] flex flex-col items-center justify-center p-6 backdrop-blur-xl"
+            >
+              <div className="w-full max-w-sm tech-card p-4 border-t-4 border-t-[--accent]">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-sm font-bold text-[--fg-bright] uppercase tracking-widest">Leitor de QR Code</h3>
+                  <button onClick={() => setShowScanner(false)} className="text-[--muted] hover:text-white p-2">
+                    <X size={20} />
+                  </button>
+                </div>
+                <div id="reader" className="overflow-hidden rounded-lg border border-white/10"></div>
+                <p className="text-[10px] text-[--muted] mt-4 text-center uppercase tracking-[0.2em]">Aponte a câmera para o QR Code da sala</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Tab Switcher */}
         <div className="flex bg-[#0a0a0a] border border-[#1a1a1a] mb-6 p-1">
