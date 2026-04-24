@@ -677,7 +677,7 @@ export default function App() {
                     className={cn('flex flex-col max-w-lg', isMe ? 'ml-auto items-end' : 'mr-auto items-start')}
                   >
                     <span className="text-[9px] text-[#404040] mb-1 font-mono">
-                      {m.senderAlias} · {m.timestamp instanceof Timestamp ? m.timestamp.toDate().toLocaleTimeString() : '...'}
+                      {m.senderAlias} · {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       {isMe && ' · (você)'}
                     </span>
                     <div className={cn(
