@@ -350,6 +350,11 @@ export default function App() {
     const trimmedId = roomId.trim();
     if (!trimmedId) { addLog('ERRO: ID DA SALA VAZIO.'); return; }
     try {
+      // Security: Clear any existing keys before joining a new room
+      setRoomKey(null);
+      setManualKey('');
+      setRoomPassword('');
+      
       addLog('INICIANDO CONEXÃO SEGURA...');
       const currentUser = await getOrEnsureAuth();
       if (!currentUser) { addLog('ERRO: FALHA NA AUTENTICAÇÃO.'); return; }
@@ -875,7 +880,13 @@ export default function App() {
               {recentRooms.map(room => (
                 <button
                   key={room.hash}
-                  onClick={() => { setRoomHash(room.hash); setShowSidebar(false); }}
+                  onClick={() => { 
+                    setRoomKey(null);
+                    setManualKey('');
+                    setRoomHash(room.hash); 
+                    setShowSidebar(false); 
+                    addLog(`TROCANDO PARA: ${room.name}`);
+                  }}
                   className={cn(
                     "w-full text-left p-3 text-xs transition-all border-l-2",
                     roomHash === room.hash ? "bg-[#111] border-[--accent] text-[--fg-bright]" : "border-transparent text-[--muted] hover:bg-[#111] hover:text-[--fg-bright]"
@@ -891,7 +902,20 @@ export default function App() {
           </div>
         </div>
 
-        <div className="p-4 border-t border-[#1a1a1a]">
+        <div className="p-4 border-t border-[#1a1a1a] space-y-2">
+          <button
+            onClick={() => {
+              setRoomKey(null);
+              setManualKey('');
+              setRoomHash(null);
+              setShowSidebar(false);
+              addLog('SAIU DA SALA. CHAVES APAGADAS.');
+            }}
+            className="w-full flex items-center justify-center gap-2 p-2.5 text-[10px] text-[--fg-bright] bg-white/5 hover:bg-white/10 transition-colors uppercase tracking-widest border border-white/5"
+          >
+            <LogOut size={12} /> Sair da Sala
+          </button>
+          
           <button
             onClick={() => {
               if (confirm('Sua identidade local será apagada. Continuar?')) {
@@ -899,9 +923,9 @@ export default function App() {
                 window.location.reload();
               }
             }}
-            className="w-full flex items-center justify-center gap-2 p-3 text-[10px] text-red-500 hover:bg-red-500/10 transition-colors uppercase tracking-widest"
+            className="w-full flex items-center justify-center gap-2 p-2.5 text-[10px] text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-colors uppercase tracking-widest"
           >
-            <LogOut size={12} /> Encerrar Sessão
+            <Trash2 size={12} /> Apagar Identidade
           </button>
         </div>
       </aside>
