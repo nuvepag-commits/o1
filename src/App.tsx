@@ -275,82 +275,102 @@ export default function App() {
     };
   }, [roomHash]);
 
-  const joinRoom = async (name: string, password?: string) => {
-    const trimmed = name.trim();
-    if (!trimmed) { addLog('NOME DA SALA INVÁLIDO.'); return; }
+  const joinRoom = async (roomId: string, password?: string) => {
+    const trimmedId = roomId.trim();
+    if (!trimmedId) { addLog('ID DA SALA INVÁLIDO.'); return; }
     try {
-      // Ensure auth before ANYTHING else
       const currentUser = await getOrEnsureAuth();
-
-      const finalHash = await hashString(trimmed);
       const hashedPass = password?.trim() ? await hashString(password.trim()) : null;
-      addLog(`CONECTANDO: ${finalHash?.substring(0, 8)}...`);
+      addLog(`LOCALIZANDO CANAL: ${trimmedId.substring(0, 8)}...`);
 
       const { data: roomSnap, error: fetchError } = await supabase
         .from('rooms')
         .select('*')
-        .eq('id', finalHash)
+        .eq('id', trimmedId)
         .maybeSingle();
 
-      const derivedKey = await deriveRoomKey(trimmed, password?.trim());
+      if (!roomSnap) {
+        addLog('SALA NÃO ENCONTRADA. VERIFIQUE O ID.');
+        alert('ID da Sala não encontrado. Peça o ID correto ao proprietário.');
+        return;
+      }
+
+      const derivedKey = await deriveRoomKey(roomSnap.name, password?.trim());
       setRoomKey(derivedKey);
-      setRoomName(trimmed);
+      setRoomName(roomSnap.name);
       setRoomPassword(password?.trim() || '');
 
-      if (!roomSnap) {
-        addLog('SALA NÃO ENCONTRADA. CRIANDO...');
-        const { error: insertError } = await supabase
-          .from('rooms')
-          .insert({
-            id: finalHash,
-            name: trimmed,
-            owner_id: currentUser.id,
-            password_hash: hashedPass,
-            allowed_users: [currentUser.id]
-          });
-
-        if (insertError) throw insertError;
-
-        addLog('SALA CRIADA. VOCÊ É O PROPRIETÁRIO.');
-        saveRecentRoom(trimmed, finalHash);
+      addLog('SALA LOCALIZADA. VERIFICANDO ACESSO...');
+      if (roomSnap.allowed_users?.includes(currentUser.id)) {
+        addLog('ACESSO AUTORIZADO.');
+        saveRecentRoom(roomSnap.name, trimmedId);
         setRecentRooms(getRecentRooms());
-        setRoomHash(finalHash);
-      } else {
-        addLog('SALA LOCALIZADA. VERIFICANDO CREDENCIAIS...');
-        if (roomSnap.allowed_users?.includes(currentUser.id)) {
-          addLog('ACESSO AUTORIZADO.');
-          saveRecentRoom(trimmed, finalHash);
-          setRecentRooms(getRecentRooms());
-          setRoomHash(finalHash);
-          return;
-        }
-        if (roomSnap.password_hash && roomSnap.password_hash !== hashedPass) {
-          addLog('SENHA INCORRETA.');
-          alert('Senha incorreta para esta sala.');
-          return;
-        }
-        addLog('ENVIANDO SOLICITAÇÃO AO DONO...');
-        const { error: reqError } = await supabase
-          .from('join_requests')
-          .upsert({
-            room_id: finalHash,
-            user_id: currentUser.id,
-            alias: identity!.alias,
-            status: 'pending'
-          }, { onConflict: 'room_id,user_id' });
-
-        if (reqError) throw reqError;
-
-        setIsPendingApproval(true);
-        saveRecentRoom(trimmed, finalHash);
-        setRecentRooms(getRecentRooms());
-        setRoomHash(finalHash);
-        addLog('AGUARDANDO APROVAÇÃO.');
+        setRoomHash(trimmedId);
+        return;
       }
+
+      if (roomSnap.password_hash && roomSnap.password_hash !== hashedPass) {
+        addLog('SENHA INCORRETA.');
+        alert('Senha incorreta para esta sala.');
+        return;
+      }
+
+      addLog('ENVIANDO SOLICITAÇÃO AO DONO...');
+      const { error: reqError } = await supabase
+        .from('join_requests')
+        .upsert({
+          room_id: trimmedId,
+          user_id: currentUser.id,
+          alias: identity!.alias,
+          status: 'pending'
+        }, { onConflict: 'room_id,user_id' });
+
+      if (reqError) throw reqError;
+
+      setIsPendingApproval(true);
+      saveRecentRoom(roomSnap.name, trimmedId);
+      setRecentRooms(getRecentRooms());
+      setRoomHash(trimmedId);
+      addLog('AGUARDANDO APROVAÇÃO.');
     } catch (err: any) {
-      const msg = err.message || 'ERRO DESCONHECIDO';
-      addLog(`FALHA AO ENTRAR: ${msg}`);
+      addLog('FALHA AO ENTRAR.');
       console.error('joinRoom error:', err);
+    }
+  };
+
+  const createRoom = async (displayName: string, password?: string) => {
+    const name = displayName.trim() || 'Nova Sala';
+    try {
+      const currentUser = await getOrEnsureAuth();
+      // Generate a random unique ID (12 chars)
+      const randomId = Math.random().toString(36).substring(2, 8) + '-' + Math.random().toString(36).substring(2, 8);
+      const hashedPass = password?.trim() ? await hashString(password.trim()) : null;
+      
+      addLog('GERANDO CANAL SEGURO...');
+      const { error: insertError } = await supabase
+        .from('rooms')
+        .insert({
+          id: randomId,
+          name: name,
+          owner_id: currentUser.id,
+          password_hash: hashedPass,
+          allowed_users: [currentUser.id]
+        });
+
+      if (insertError) throw insertError;
+
+      const derivedKey = await deriveRoomKey(name, password?.trim());
+      setRoomKey(derivedKey);
+      setRoomName(name);
+      setRoomPassword(password?.trim() || '');
+      setRoomHash(randomId);
+      
+      saveRecentRoom(name, randomId);
+      setRecentRooms(getRecentRooms());
+      addLog('SALA CRIADA COM SUCESSO.');
+    } catch (err: any) {
+      addLog('ERRO AO CRIAR SALA.');
+      console.error(err);
     }
   };
 
@@ -507,7 +527,8 @@ export default function App() {
       <RoomEntrance
         value={inputRoom} onChange={setInputRoom}
         passValue={inputPassword} onPassChange={setInputPassword}
-        onJoin={joinRoom} recentRooms={recentRooms}
+        onJoin={joinRoom} onCreate={createRoom}
+        recentRooms={recentRooms}
         onRemoveRecent={hash => { removeRecentRoom(hash); setRecentRooms(getRecentRooms()); }}
       />
     );
@@ -584,6 +605,30 @@ export default function App() {
             <p className="text-[9px] text-[--muted] uppercase tracking-widest mb-1">Identidade Local</p>
             <p className="text-xs text-[--fg-bright] truncate">{identity.alias}</p>
             <p className="text-[9px] text-[#404040] mt-1 break-all">{identity.id?.substring(0, 24)}...</p>
+          </div>
+
+          <div className="p-4 bg-[--accent]/5 border-l-2 border-[--accent]">
+            <p className="text-[9px] text-[--accent] uppercase tracking-widest mb-2">Canal Atual</p>
+            <div className="space-y-3">
+              <div>
+                <p className="text-[10px] text-[--muted] uppercase text-[8px] mb-1">ID Secreto</p>
+                <div className="flex items-center gap-2">
+                  <code className="text-[10px] text-[--fg-bright] font-mono truncate flex-1">{roomHash}</code>
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(roomHash || ''); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+                    className="p-1.5 hover:bg-white/10 text-[--muted] hover:text-[--accent] transition-all"
+                  >
+                    {copied ? <Check size={12} /> : <Copy size={12} />}
+                  </button>
+                </div>
+              </div>
+              <button
+                className="w-full flex items-center justify-center gap-2 py-2 border border-[--accent]/20 text-[--accent] text-[10px] hover:bg-[--accent]/10 transition-all uppercase tracking-widest"
+                onClick={() => alert(`QR Code Link: ${window.location.origin}/#${roomHash}`)}
+              >
+                <QrCode size={12} /> Gerar QR Code
+              </button>
+            </div>
           </div>
 
           <div>
