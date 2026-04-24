@@ -1,20 +1,26 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# KryptoAnon - Mensagens Criptografadas Efêmeras
 
-# Run and deploy your AI Studio app
+Sistema de chat anônimo com criptografia de ponta a ponta (AES-256-GCM) e backend em Supabase.
 
-This contains everything you need to run your app locally.
+## Funcionalidades
+- Identidade efêmera (RSA-2048) gerada localmente.
+- Salas protegidas por senha e aprovação do dono.
+- Criptografia de mensagens e imagens no navegador.
+- Remoção automática de metadados de imagens (EXIF).
+- Real-time com Supabase.
 
-View your app in AI Studio: https://ai.studio/apps/fc682fb4-392d-458a-820f-621edb9be1da
+## Como Rodar Localmente
 
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
+1. **Instalar dependências**:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
+
+2. **Configurar o `.env`**:
+   Crie um arquivo `.env` com sua URL e Key do Supabase:
+   `VITE_SUPABASE_URL=sua_url`
+   `VITE_SUPABASE_ANON_KEY=sua_key`
+
+3. **Executar o SQL**:
+   Rode o conteúdo de `supabase_schema.sql` no seu painel do Supabase.
+
+4. **Iniciar**:
    `npm run dev`
