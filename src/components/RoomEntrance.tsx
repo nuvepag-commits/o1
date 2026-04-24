@@ -1,3 +1,5 @@
+import React, { useState } from 'react';
+import { motion } from 'motion/react';
 import { Hash, Key, Clock, Trash2, Plus, LogIn } from 'lucide-react';
 import { cn } from '../lib/utils';
 
