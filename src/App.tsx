@@ -960,7 +960,7 @@ export default function App() {
                           <div className="space-y-2">
                             <img src={decrypted} alt="img" className="max-w-full rounded border border-white/5 cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(decrypted, '_blank')} />
                             <div className="flex items-center gap-2 text-[8px] text-[--muted] uppercase tracking-[0.2em] pt-1 border-t border-white/5">
-                              <Shield size={8} className="text-[--accent]" /> Proteção de Metadados Ativa
+                              <Lock size={8} className="text-[--accent]" /> Criptografia E2EE + Sem Metadados
                             </div>
                           </div>
                         ) : (
