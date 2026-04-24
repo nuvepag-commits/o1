@@ -806,6 +806,17 @@ export default function App() {
               >
                 Liberar Mensagens
               </button>
+              <button
+                onClick={() => {
+                  addLog('FORÇANDO RE-SINCRONIZAÇÃO...');
+                  const currentHash = roomHash;
+                  setRoomHash(null);
+                  setTimeout(() => setRoomHash(currentHash), 100);
+                }}
+                className="w-full bg-white/5 hover:bg-white/10 text-[--muted] hover:text-white text-[8px] py-1 mt-1 transition-all border border-white/5 uppercase tracking-widest"
+              >
+                Forçar Re-Sincronização
+              </button>
               <p className="text-[8px] text-[#404040] leading-tight mt-1 italic">
                 O acesso à sala não garante a leitura. Digite a chave fornecida pelo administrador acima.
               </p>
