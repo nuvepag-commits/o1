@@ -683,11 +683,31 @@ export default function App() {
                 </h1>
               </div>
             </div>
-            <div className="flex items-center gap-4 text-[10px] font-mono hidden sm:flex">
-              <span className={cn('uppercase', roomData?.ownerId === user?.id ? 'text-[--accent]' : 'text-[--muted]')}>
-                {roomData?.ownerId === user?.id ? 'Proprietário' : 'Membro'}
-              </span>
-              <span className="text-[--accent]">● Online</span>
+            
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4 text-[10px] font-mono hidden sm:flex border-r border-[#1a1a1a] pr-4 mr-1">
+                <span className={cn('uppercase', roomData?.ownerId === user?.id ? 'text-[--accent]' : 'text-[--muted]')}>
+                  {roomData?.ownerId === user?.id ? 'Proprietário' : 'Membro'}
+                </span>
+                <span className="text-[--accent]">● Online</span>
+              </div>
+
+              {roomData?.ownerId === user?.id && (
+                <button
+                  onClick={() => setShowConfig(!showConfig)}
+                  className={cn(
+                    "relative p-2 transition-all rounded",
+                    showConfig ? "bg-[--accent] text-black" : "bg-[#111] text-[--muted] hover:text-white hover:bg-[#1a1a1a]"
+                  )}
+                >
+                  <Settings size={18} />
+                  {pendingRequests.length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] flex items-center justify-center rounded-full animate-bounce font-bold">
+                      {pendingRequests.length}
+                    </span>
+                  )}
+                </button>
+              )}
             </div>
           </header>
 
