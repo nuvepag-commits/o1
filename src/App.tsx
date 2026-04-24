@@ -583,7 +583,7 @@ export default function App() {
           <div className="p-4 bg-white/5 border-l-2 border-[--accent]">
             <p className="text-[9px] text-[--muted] uppercase tracking-widest mb-1">Identidade Local</p>
             <p className="text-xs text-[--fg-bright] truncate">{identity.alias}</p>
-            <p className="text-[9px] text-[#404040] mt-1 break-all">{identity.id.substring(0, 24)}...</p>
+            <p className="text-[9px] text-[#404040] mt-1 break-all">{identity.id?.substring(0, 24)}...</p>
           </div>
 
           <div>
@@ -678,7 +678,7 @@ export default function App() {
                     <div className="space-y-1 max-h-40 overflow-y-auto">
                       {roomData.allowedUsers.map(uid => (
                         <div key={uid} className="text-[10px] font-mono p-1.5 text-[--muted]">
-                          {uid === user?.id ? <span className={cn('text-[--accent]')}>VOCÊ (OWNER)</span> : uid.substring(0, 12) + '...'}
+                          {uid === user?.id ? <span className={cn('text-[--accent]')}>VOCÊ (OWNER)</span> : uid?.substring(0, 12) + '...'}
                         </div>
                       ))}
                     </div>
