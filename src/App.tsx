@@ -85,7 +85,13 @@ export default function App() {
   const [isRecording, setIsRecording] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>(Notification.permission);
+  
+  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -661,60 +667,59 @@ export default function App() {
     return <IdentitySetup onGenerate={handleGenerateIdentity} isLoading={isGenerating} />;
   }
 
-  if (!roomHash) {
-    return (
-      <RoomEntrance
-        value={inputRoom} onChange={setInputRoom}
-        passValue={inputPassword} onPassChange={setInputPassword}
-        onJoin={joinRoom} onCreate={createRoom}
-        recentRooms={recentRooms}
-        onRemoveRecent={hash => { removeRecentRoom(hash); setRecentRooms(getRecentRooms()); }}
-      />
-    );
-  }
+  const renderContent = () => {
+    if (!roomHash) {
+      return (
+        <RoomEntrance
+          value={inputRoom} onChange={setInputRoom}
+          passValue={inputPassword} onPassChange={setInputPassword}
+          onJoin={joinRoom} onCreate={createRoom}
+          recentRooms={recentRooms}
+          onRemoveRecent={hash => { removeRecentRoom(hash); setRecentRooms(getRecentRooms()); }}
+        />
+      );
+    }
 
-  if (isPendingApproval) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#050505' }}>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-          className="tech-card p-8 max-w-md w-full relative overflow-hidden"
-        >
-          <div className="absolute top-0 left-0 w-1 h-full bg-[--accent]" />
-          <div className="flex items-center gap-3 mb-6">
-            <Clock className="text-[--accent]" size={32} />
-            <div>
-              <h2 className="text-xl font-mono uppercase font-bold text-[--fg-bright]">Aguardando Acesso</h2>
-              <p className="text-xs font-mono text-[--muted]">Permissão pendente do proprietário.</p>
+    if (isPendingApproval) {
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#050505' }}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+            className="tech-card p-8 max-w-md w-full relative overflow-hidden"
+          >
+            <div className="absolute top-0 left-0 w-1 h-full bg-[--accent]" />
+            <div className="flex items-center gap-3 mb-6">
+              <Clock className="text-[--accent]" size={32} />
+              <div>
+                <h2 className="text-xl font-mono uppercase font-bold text-[--fg-bright]">Aguardando Acesso</h2>
+                <p className="text-xs font-mono text-[--muted]">Permissão pendente do proprietário.</p>
+              </div>
             </div>
-          </div>
-          <div className="p-4 bg-white/5 border-l-2 border-[--accent] mb-6">
-            <p className="text-xs font-mono text-[--fg]">Sala: <strong>{roomName}</strong></p>
-            <p className="text-[10px] font-mono text-[--muted] mt-1">Aguarde o proprietário aprovar sua entrada.</p>
-          </div>
-          <button onClick={() => { setRoomHash(null); setIsPendingApproval(false); }} className="w-full tech-button-muted">
-            CANCELAR SOLICITAÇÃO
-          </button>
-        </motion.div>
-      </div>
-    );
-  }
-
-  if (!roomData) {
-    return (
-      <div className="min-h-screen bg-black text-[--accent] font-mono flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-2 border-[--accent] border-t-transparent rounded-full animate-spin" />
-          <p className="text-[10px] uppercase tracking-[0.3em] animate-pulse">Sincronizando Canal...</p>
+            <div className="p-4 bg-white/5 border-l-2 border-[--accent] mb-6">
+              <p className="text-xs font-mono text-[--fg]">Sala: <strong>{roomName}</strong></p>
+              <p className="text-[10px] font-mono text-[--muted] mt-1">Aguarde o proprietário aprovar sua entrada.</p>
+            </div>
+            <button onClick={() => { setRoomHash(null); setIsPendingApproval(false); }} className="w-full tech-button-muted">
+              CANCELAR SOLICITAÇÃO
+            </button>
+          </motion.div>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
-  // ─── Main Chat ────────────────────────────────────────
+    if (!roomData) {
+      return (
+        <div className="min-h-screen bg-black text-[--accent] font-mono flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-2 border-[--accent] border-t-transparent rounded-full animate-spin" />
+            <p className="text-[10px] uppercase tracking-[0.3em] animate-pulse">Sincronizando Canal...</p>
+          </div>
+        </div>
+      );
+    }
 
-  return (
-    <div className="flex h-screen bg-black text-[--fg] font-mono overflow-hidden relative">
+    return (
+      <div className="flex h-screen bg-black text-[--fg] font-mono overflow-hidden relative w-full">
       {/* Mobile Overlay */}
       <AnimatePresence>
         {showSidebar && (
@@ -801,10 +806,27 @@ export default function App() {
               <button
                 onClick={async () => {
                   if (roomHash && manualKey) {
-                    addLog('SINCROZINANDO CHAVE E2EE...');
+                    addLog('VALIDANDO CHAVE E2EE...');
+                    
+                    // Validation attempt: Try to decrypt any existing message
+                    const testMsg = messages.length > 0 ? messages[messages.length - 1] : null;
                     const k = await deriveRoomKey(manualKey, roomHash);
-                    setRoomKey(k);
-                    addLog('CHAVE APLICADA. MENSAGENS LIBERADAS.');
+                    
+                    if (testMsg) {
+                      try {
+                        await decryptText(testMsg.content, k);
+                        setRoomKey(k);
+                        showToast('MENSAGENS DESCRIPTOGRAFADAS!', 'success');
+                        addLog('CHAVE APLICADA COM SUCESSO.');
+                      } catch {
+                        showToast('SENHA INCORRETA! TENTE NOVAMENTE.', 'error');
+                        addLog('FALHA NA VALIDAÇÃO DA CHAVE.');
+                      }
+                    } else {
+                      // Fallback if no messages yet
+                      setRoomKey(k);
+                      showToast('CHAVE APLICADA (CANAL VAZIO)', 'success');
+                    }
                   }
                 }}
                 className="w-full bg-orange-500/10 hover:bg-orange-500/20 text-orange-500 text-[9px] py-1.5 transition-all border border-orange-500/20 font-bold tracking-widest uppercase"
@@ -1111,7 +1133,30 @@ export default function App() {
         </div>
       </div>
     );
-  }
+  };
+
+  return (
+    <>
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className={cn(
+              "fixed top-6 left-1/2 -translate-x-1/2 z-[300] px-6 py-3 border shadow-2xl flex items-center gap-3 min-w-[280px]",
+              toast.type === 'success' ? "bg-black border-[#00FF41] text-[#00FF41]" : "bg-black border-red-500 text-red-500"
+            )}
+          >
+            {toast.type === 'success' ? <CheckCircle2 size={18} /> : <X size={18} />}
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em]">{toast.msg}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {renderContent()}
+    </>
+  );
+}
 
 // ─── Sub-components ───────────────────────────────────
 
