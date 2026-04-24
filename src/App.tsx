@@ -726,7 +726,7 @@ export default function App() {
             <p className="text-[9px] text-[--accent] uppercase tracking-widest mb-2">Canal Atual</p>
             <div className="space-y-3">
               <div>
-                <p className="text-[10px] text-[--muted] uppercase text-[8px] mb-1">ID Secreto</p>
+                <p className="text-[10px] text-[--muted] uppercase text-[8px] mb-1">ID Secreto do Canal</p>
                 <div className="flex items-center gap-2">
                   <code className="text-[10px] text-[--fg-bright] font-mono truncate flex-1">{roomHash}</code>
                   <button
@@ -736,6 +736,21 @@ export default function App() {
                     {copied ? <Check size={12} /> : <Copy size={12} />}
                   </button>
                 </div>
+              </div>
+
+              <div>
+                <p className="text-[10px] text-[--muted] uppercase text-[8px] mb-1">Senha de Descriptografia</p>
+                <div className="flex items-center gap-2">
+                  <code className="text-[10px] text-[--accent] font-mono truncate flex-1">••••••••</code>
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(roomPassword || ''); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-[--accent]/10 text-[--accent] text-[9px] hover:bg-[--accent]/20 transition-all rounded uppercase tracking-widest"
+                  >
+                    {copied ? <Check size={10} /> : <Copy size={10} />}
+                    {copied ? 'Copiada' : 'Copiar Chave'}
+                  </button>
+                </div>
+                <p className="text-[8px] text-[#404040] mt-1">Forneça esta chave apenas para membros aprovados.</p>
               </div>
               <button
                 className="w-full flex items-center justify-center gap-2 py-2 border border-[--accent]/20 text-[--accent] text-[10px] hover:bg-[--accent]/10 transition-all uppercase tracking-widest"
