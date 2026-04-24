@@ -168,6 +168,13 @@ export default function App() {
     addLog('SESSÃO ENCERRADA.');
   };
 
+  const loadPendingRequests = () => {
+    if (!roomHash) return;
+    supabase.from('join_requests').select('*').eq('room_id', roomHash).eq('status', 'pending').then(({ data }) => {
+      if (data) setPendingRequests(data as any);
+    });
+  };
+
   // Room & Message Subscriptions
   useEffect(() => {
     let user: any = null;
@@ -236,12 +243,6 @@ export default function App() {
         loadPendingRequests();
       })
       .subscribe();
-
-    const loadPendingRequests = () => {
-      supabase.from('join_requests').select('*').eq('room_id', roomHash).eq('status', 'pending').then(({ data }) => {
-        if (data) setPendingRequests(data as any);
-      });
-    };
 
     // Initial Load
     loadPendingRequests();
@@ -377,22 +378,61 @@ export default function App() {
 
   const approveUser = async (userId: string) => {
     if (!roomHash || !roomData) return;
+    addLog(`APROVANDO USUÁRIO: ${userId.substring(0, 8)}...`);
     try {
-      await supabase.from('join_requests').update({ status: 'approved' }).eq('room_id', roomHash).eq('user_id', userId);
-      const { data: room } = await supabase.from('rooms').select('allowed_users').eq('id', roomHash).single();
+      // 1. Update request status
+      const { error: reqError } = await supabase
+        .from('join_requests')
+        .update({ status: 'approved' })
+        .eq('room_id', roomHash)
+        .eq('user_id', userId);
+
+      if (reqError) throw reqError;
+
+      // 2. Add to allowed_users array in rooms table
+      const { data: room, error: fetchError } = await supabase
+        .from('rooms')
+        .select('allowed_users')
+        .eq('id', roomHash)
+        .single();
+
+      if (fetchError) throw fetchError;
+
       const currentList = room?.allowed_users || [];
-      const updatedList = Array.from(new Set([...currentList, userId]));
-      await supabase.from('rooms').update({ allowed_users: updatedList }).eq('id', roomHash);
-      addLog('USUÁRIO APROVADO.');
-    } catch { addLog('ERRO NA APROVAÇÃO.'); }
+      if (!currentList.includes(userId)) {
+        const updatedList = [...currentList, userId];
+        const { error: updateError } = await supabase
+          .from('rooms')
+          .update({ allowed_users: updatedList })
+          .eq('id', roomHash);
+        
+        if (updateError) throw updateError;
+      }
+
+      addLog('USUÁRIO APROVADO COM SUCESSO.');
+      loadPendingRequests(); // Refresh list
+    } catch (err: any) {
+      addLog(`FALHA NA APROVAÇÃO: ${err.message || 'ERRO DESCONHECIDO'}`);
+      console.error('Approve error:', err);
+    }
   };
 
   const rejectUser = async (userId: string) => {
     if (!roomHash) return;
+    addLog(`REJEITANDO USUÁRIO...`);
     try {
-      await supabase.from('join_requests').update({ status: 'rejected' }).eq('room_id', roomHash).eq('user_id', userId);
+      const { error } = await supabase
+        .from('join_requests')
+        .update({ status: 'rejected' })
+        .eq('room_id', roomHash)
+        .eq('user_id', userId);
+
+      if (error) throw error;
       addLog('USUÁRIO REJEITADO.');
-    } catch { addLog('ERRO NA REJEIÇÃO.'); }
+      loadPendingRequests(); // Refresh list
+    } catch (err: any) {
+      addLog(`FALHA NA REJEIÇÃO: ${err.message || 'ERRO DESCONHECIDO'}`);
+    }
   };
 
   const handleSendMessage = async (text: string) => {
