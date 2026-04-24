@@ -227,16 +227,22 @@ export default function App() {
       if (data) setMessages(data as any);
     });
 
-    // Join Requests Subscription
+    // Join Requests Subscription (For Owners)
     const requestsChannel = supabase
       .channel(`requests:${roomHash}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'join_requests', filter: `room_id=eq.${roomHash}` }, () => {
-        // Refresh all requests for simplicity
-        supabase.from('join_requests').select('*').eq('room_id', roomHash).eq('status', 'pending').then(({ data }) => {
-          if (data) setPendingRequests(data as any);
-        });
+        loadPendingRequests();
       })
       .subscribe();
+
+    const loadPendingRequests = () => {
+      supabase.from('join_requests').select('*').eq('room_id', roomHash).eq('status', 'pending').then(({ data }) => {
+        if (data) setPendingRequests(data as any);
+      });
+    };
+
+    // Initial Load
+    loadPendingRequests();
 
     // My Request Subscription
     let myRequestChannel: any = null;
@@ -350,9 +356,11 @@ export default function App() {
   const approveUser = async (userId: string) => {
     if (!roomHash || !roomData) return;
     try {
-      const newAllowed = [...roomData.allowedUsers, userId];
-      await supabase.from('rooms').update({ allowed_users: newAllowed }).eq('id', roomHash);
       await supabase.from('join_requests').update({ status: 'approved' }).eq('room_id', roomHash).eq('user_id', userId);
+      const { data: room } = await supabase.from('rooms').select('allowed_users').eq('id', roomHash).single();
+      const currentList = room?.allowed_users || [];
+      const updatedList = Array.from(new Set([...currentList, userId]));
+      await supabase.from('rooms').update({ allowed_users: updatedList }).eq('id', roomHash);
       addLog('USUÁRIO APROVADO.');
     } catch { addLog('ERRO NA APROVAÇÃO.'); }
   };
