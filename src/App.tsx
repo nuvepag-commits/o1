@@ -137,27 +137,12 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Decrypt new messages when roomKey or messages change
+  // Decrypt state is now handled inside MessageItem for better performance
   useEffect(() => {
     if (!roomKey) {
       setDecryptedMessages({});
-      return;
     }
-    
-    // If roomKey exists but we have messages that failed decryption, 
-    // we should re-attempt them. 
-    setDecryptedMessages({}); // Clear cache to force re-decryption with the current key
-
-    messages.forEach(async m => {
-      // Allow decryption for text, image, and audio
-      try {
-        const plain = await decryptText(m.content, roomKey);
-        setDecryptedMessages(prev => ({ ...prev, [m.id]: plain }));
-      } catch {
-        setDecryptedMessages(prev => ({ ...prev, [m.id]: '[Mensagem criptografada — chave inválida]' }));
-      }
-    });
-  }, [messages, roomKey]);
+  }, [roomKey]);
 
   const handleGenerateIdentity = async (alias: string) => {
     setIsGenerating(true);
@@ -934,7 +919,7 @@ export default function App() {
                   key={m.id} 
                   m={m} 
                   isMe={m.senderId === user?.id} 
-                  decrypted={decryptedMessages[m.id]} 
+                  roomKey={roomKey} 
                 />
               ))}
             </AnimatePresence>
@@ -993,7 +978,27 @@ export default function App() {
 
 // ─── Sub-components ───────────────────────────────────
 
-function MessageItem({ m, isMe, decrypted }: { m: Message, isMe: boolean, decrypted: string | undefined }) {
+function MessageItem({ m, isMe, roomKey }: { m: Message, isMe: boolean, roomKey: CryptoKey | null }) {
+  const [decrypted, setDecrypted] = useState<string | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!roomKey) return;
+    
+    let isMounted = true;
+    const decrypt = async () => {
+      try {
+        const plain = await decryptText(m.content, roomKey);
+        if (isMounted) setDecrypted(plain);
+      } catch (err) {
+        if (isMounted) setError(true);
+      }
+    };
+
+    decrypt();
+    return () => { isMounted = false; };
+  }, [m.content, roomKey]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8, scale: 0.98 }}
@@ -1014,7 +1019,9 @@ function MessageItem({ m, isMe, decrypted }: { m: Message, isMe: boolean, decryp
         'px-4 py-3 text-sm leading-relaxed border-l-2 shadow-lg overflow-hidden',
         isMe ? 'bg-[#121212] border-[#404040] text-[--fg-bright]' : 'bg-[#0a0a0a] border-[--accent] text-[--fg-bright]'
       )}>
-        {m.type === 'text' && (
+        {error ? (
+          <p className="text-red-500 text-[10px] italic">[MENSAGEM CRIPTOGRAFADA — CHAVE INVÁLIDA]</p>
+        ) : m.type === 'text' && (
           decrypted ? (
             <p className="whitespace-pre-wrap break-words">{decrypted}</p>
           ) : (
@@ -1025,7 +1032,7 @@ function MessageItem({ m, isMe, decrypted }: { m: Message, isMe: boolean, decryp
           )
         )}
         
-        {m.type === 'image' && (
+        {!error && m.type === 'image' && (
           decrypted ? (
             <div className="space-y-2">
               <img 
@@ -1033,6 +1040,7 @@ function MessageItem({ m, isMe, decrypted }: { m: Message, isMe: boolean, decryp
                 alt="img" 
                 className="max-w-full rounded border border-white/5 cursor-pointer hover:opacity-90 transition-opacity" 
                 onClick={() => window.open(decrypted, '_blank')} 
+                loading="lazy"
                 onError={(e) => {
                   (e.target as any).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="%23111"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white" font-size="10">ERRO AO CARREGAR</text></svg>';
                 }}
@@ -1043,12 +1051,12 @@ function MessageItem({ m, isMe, decrypted }: { m: Message, isMe: boolean, decryp
             </div>
           ) : (
             <div className="w-48 h-32 bg-white/5 animate-pulse flex items-center justify-center text-[10px] text-[--muted]">
-              CARREGANDO MÍDIA...
+              PROCESSANDO IMAGEM...
             </div>
           )
         )}
 
-        {m.type === 'audio' && (
+        {!error && m.type === 'audio' && (
           decrypted ? (
             <div className="py-1">
               <audio src={decrypted} controls className="max-w-full h-8 brightness-90 contrast-125" />
