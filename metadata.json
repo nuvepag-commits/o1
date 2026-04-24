@@ -1,0 +1,6 @@
+{
+  "name": "KryptoAnon",
+  "description": "Uma plataforma de comunicação ultra-privada, sem cadastro, com entrada via Hash e criptografia ponta-a-ponta.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": []
+}

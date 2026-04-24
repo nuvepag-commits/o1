@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  :root {
+    --bg: #050505;
+    --fg: #A0A0A0;
+    --fg-bright: #E8E8E8;
+    --accent: #00FF41;
+    --accent-muted: rgba(0, 255, 65, 0.08);
+    --border: #1A1A1A;
+    --border-light: #262626;
+    --muted: #404040;
+    --card-bg: #0A0A0A;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer components {
+  .tech-card {
+    @apply border border-[--border-light] bg-[--card-bg];
+    border-radius: 0;
+  }
+
+  .tech-input {
+    @apply bg-[--card-bg] border border-[--border-light] text-[--fg-bright] font-mono
+           px-4 py-3 text-sm outline-none transition-colors placeholder-[#333];
+    border-radius: 0;
+  }
+  .tech-input:focus {
+    border-color: rgba(0, 255, 65, 0.4);
+    box-shadow: 0 0 0 1px rgba(0, 255, 65, 0.1);
+  }
+
+  .tech-button {
+    @apply bg-[--accent] border-none text-black font-bold uppercase text-[10px]
+           tracking-[0.2em] px-4 py-3 transition-all cursor-pointer
+           disabled:opacity-40 disabled:cursor-not-allowed;
+    border-radius: 0;
+  }
+  .tech-button:hover:not(:disabled) {
+    filter: brightness(0.88);
+  }
+
+  .tech-button-muted {
+    @apply bg-[--border] border border-[#333] text-[--fg-bright] font-bold uppercase
+           text-[10px] tracking-[0.2em] px-4 py-3 cursor-pointer transition-all;
+    border-radius: 0;
+  }
+  .tech-button-muted:hover {
+    background-color: #222;
+  }
+
+  .tech-label {
+    @apply text-[--muted] text-[10px] uppercase tracking-[0.2em] font-sans mb-2;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #1a1a1a; }
+::-webkit-scrollbar-thumb:hover { background: #2a2a2a; }
+
+/* Scan line effect */
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+/* Cursor blink */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.cursor-blink::after {
+  content: '▊';
+  animation: blink 1s step-end infinite;
+  color: var(--accent);
+}
