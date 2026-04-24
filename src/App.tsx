@@ -371,14 +371,25 @@ export default function App() {
     if (!roomHash || !currentUser || !text.trim() || !roomKey) return;
     try {
       const encrypted = await encryptText(text.trim(), roomKey);
-      await supabase.from('messages').insert({
+      
+      // 1. Insert message (Must work for all members)
+      const { error: msgError } = await supabase.from('messages').insert({
         room_id: roomHash,
         sender_id: currentUser.id,
         sender_alias: identity!.alias,
         content: encrypted,
         type: 'text'
       });
-      await supabase.from('rooms').update({ last_activity: new Date().toISOString() }).eq('id', roomHash);
+      
+      if (msgError) throw msgError;
+
+      // 2. Try to update room activity (Might fail if not owner, that's okay)
+      try {
+        await supabase.from('rooms').update({ last_activity: new Date().toISOString() }).eq('id', roomHash);
+      } catch (e) {
+        // Ignore room update error
+      }
+
       setMessageText('');
     } catch (err: any) {
       addLog('FALHA NO ENVIO.');
