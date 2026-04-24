@@ -663,11 +663,11 @@ export default function App() {
                     {pendingRequests.length === 0
                       ? <p className="text-[10px] text-[--muted] italic">Nenhuma pendente.</p>
                       : pendingRequests.map(req => (
-                          <div key={req.userId} className="flex items-center justify-between p-2 bg-[#0a0a0a] border border-[#222] mb-2">
+                          <div key={req.user_id} className="flex items-center justify-between p-2 bg-[#0a0a0a] border border-[#222] mb-2">
                             <span className="text-[11px] text-[--fg-bright] font-mono">{req.alias}</span>
                             <div className="flex gap-1">
-                              <button onClick={() => approveUser(req.userId)} className="p-1 bg-[--accent]/20 text-[--accent] hover:bg-[--accent]/30 rounded"><Check size={12} /></button>
-                              <button onClick={() => rejectUser(req.userId)} className="p-1 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded"><X size={12} /></button>
+                              <button onClick={() => approveUser(req.user_id)} className="p-1 bg-[--accent]/20 text-[--accent] hover:bg-[--accent]/30 rounded"><Check size={12} /></button>
+                              <button onClick={() => rejectUser(req.user_id)} className="p-1 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded"><X size={12} /></button>
                             </div>
                           </div>
                         ))
