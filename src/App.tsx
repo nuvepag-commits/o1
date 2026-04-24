@@ -88,6 +88,15 @@ export default function App() {
   const audioChunksRef = useRef<Blob[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Handle URL Hash on Load
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash && hash.length > 5) {
+      setInputRoom(hash);
+      addLog('CANAL DETECTADO VIA LINK.');
+    }
+  }, []);
+
   /** Ensures we have an authenticated Supabase user. Returns the user or throws. */
   const getOrEnsureAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -750,7 +759,7 @@ export default function App() {
                   
                   <div className="bg-white p-4 rounded-xl mb-6 inline-block shadow-[0_0_30px_rgba(var(--accent-rgb),0.3)]">
                     <img 
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${roomHash}`} 
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.origin + '/#' + roomHash)}`} 
                       alt="QR Code" 
                       className="w-48 h-48"
                     />
