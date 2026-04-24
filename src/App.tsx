@@ -83,6 +83,7 @@ export default function App() {
   const [authReady, setAuthReady] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [showQR, setShowQR] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -624,12 +625,58 @@ export default function App() {
               </div>
               <button
                 className="w-full flex items-center justify-center gap-2 py-2 border border-[--accent]/20 text-[--accent] text-[10px] hover:bg-[--accent]/10 transition-all uppercase tracking-widest"
-                onClick={() => alert(`QR Code Link: ${window.location.origin}/#${roomHash}`)}
+                onClick={() => setShowQR(true)}
               >
                 <QrCode size={12} /> Gerar QR Code
               </button>
             </div>
           </div>
+
+          {/* QR Modal Overlay */}
+          <AnimatePresence>
+            {showQR && (
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-6 backdrop-blur-md"
+              >
+                <motion.div
+                  initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
+                  className="tech-card p-8 max-w-sm w-full text-center border-t-4 border-t-[--accent]"
+                >
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-sm font-bold text-[--fg-bright] uppercase tracking-[0.2em]">Compartilhar Canal</h3>
+                    <button onClick={() => setShowQR(false)} className="text-[--muted] hover:text-white"><X size={18} /></button>
+                  </div>
+                  
+                  <div className="bg-white p-4 rounded-xl mb-6 inline-block shadow-[0_0_30px_rgba(var(--accent-rgb),0.3)]">
+                    <img 
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${roomHash}`} 
+                      alt="QR Code" 
+                      className="w-48 h-48"
+                    />
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-[10px] text-[--muted] uppercase mb-1">ID do Canal</p>
+                      <p className="text-xs font-mono text-[--accent] break-all bg-white/5 p-2 border border-white/10">{roomHash}</p>
+                    </div>
+                    
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(roomHash || ''); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+                      className="w-full tech-button py-3 text-[10px] flex items-center justify-center gap-2"
+                    >
+                      {copied ? <><Check size={14}/> COPIADO!</> : <><Copy size={14}/> COPIAR ID</>}
+                    </button>
+                    
+                    <p className="text-[9px] text-[--muted] italic">
+                      Aponte a câmera para entrar instantaneamente.
+                    </p>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div>
             <h3 className="text-[9px] text-[--muted] uppercase tracking-widest mb-4 px-2">Salas Recentes</h3>
