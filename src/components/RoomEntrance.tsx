@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Hash, Key, Clock, Trash2, Plus, LogIn, Lock, Camera, X } from 'lucide-react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import { cn } from '../lib/utils';
 import { AnimatePresence } from 'motion/react';
 
@@ -27,24 +27,50 @@ export function RoomEntrance({ value, onChange, passValue, onPassChange, onJoin,
   const [messageKey, setMessageKey] = useState('');
   const [search, setSearch] = useState('');
   const [showScanner, setShowScanner] = useState(false);
+  const [scannerRef, setScannerRef] = useState<Html5Qrcode | null>(null);
+
+  const stopScanner = async () => {
+    if (scannerRef) {
+      try {
+        await scannerRef.stop();
+      } catch (e) {
+        console.error("Erro ao parar scanner:", e);
+      }
+      setScannerRef(null);
+    }
+    setShowScanner(false);
+  };
 
   const startScanner = () => {
     setShowScanner(true);
-    setTimeout(() => {
-      const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }, false);
-      scanner.render((decodedText) => {
-        // Handle URL or raw ID
-        let id = decodedText;
-        if (id.includes('#')) {
-          id = id.split('#').pop() || id;
-        }
-        onChange(id);
-        scanner.clear();
+    setTimeout(async () => {
+      try {
+        const html5QrCode = new Html5Qrcode("reader");
+        setScannerRef(html5QrCode);
+        
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        
+        await html5QrCode.start(
+          { facingMode: "environment" }, 
+          config,
+          (decodedText) => {
+            let id = decodedText;
+            if (id.includes('#')) {
+              id = id.split('#').pop() || id;
+            }
+            onChange(id);
+            stopScanner();
+          },
+          (errorMessage) => {
+            // console.log(errorMessage);
+          }
+        );
+      } catch (err) {
+        console.error("Erro ao iniciar câmera:", err);
+        alert("Não foi possível acessar a câmera. Verifique as permissões.");
         setShowScanner(false);
-      }, (error) => {
-        // console.warn(error);
-      });
-    }, 100);
+      }
+    }, 300);
   };
 
   const filtered = recentRooms.filter(r =>
@@ -91,7 +117,7 @@ export function RoomEntrance({ value, onChange, passValue, onPassChange, onJoin,
               <div className="w-full max-w-sm tech-card p-4 border-t-4 border-t-[--accent]">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-sm font-bold text-[--fg-bright] uppercase tracking-widest">Leitor de QR Code</h3>
-                  <button onClick={() => setShowScanner(false)} className="text-[--muted] hover:text-white p-2">
+                  <button onClick={stopScanner} className="text-[--muted] hover:text-white p-2">
                     <X size={20} />
                   </button>
                 </div>
