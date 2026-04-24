@@ -303,11 +303,45 @@ export default function App() {
       }
     });
 
+    // Polling Fallback (Every 5 seconds)
+    const pollingInterval = setInterval(() => {
+      supabase.from('messages')
+        .select('*')
+        .eq('room_id', roomHash)
+        .order('timestamp', { ascending: false })
+        .limit(20)
+        .then(({ data }) => {
+          if (data) {
+            setMessages(prev => {
+              const existingIds = new Set(prev.map(m => m.id));
+              const newMsgs = (data as any[])
+                .map(m => ({
+                  id: m.id,
+                  senderId: m.sender_id,
+                  senderAlias: m.sender_alias,
+                  content: m.content,
+                  type: m.type,
+                  timestamp: m.timestamp
+                }))
+                .filter(m => !existingIds.has(m.id))
+                .reverse();
+              
+              if (newMsgs.length > 0) {
+                addLog(`SINCRONIZADAS ${newMsgs.length} MENSAGENS VIA POLLING.`);
+                return [...prev, ...newMsgs];
+              }
+              return prev;
+            });
+          }
+        });
+    }, 5000);
+
     return () => {
       roomChannel.unsubscribe();
       messagesChannel.unsubscribe();
       requestsChannel.unsubscribe();
       if (myRequestChannel) myRequestChannel.unsubscribe();
+      clearInterval(pollingInterval);
     };
   }, [roomHash]);
 
