@@ -77,7 +77,7 @@ export function RoomEntrance({ value, onChange, passValue, onPassChange, onJoin,
             <button
               type="button"
               className="w-full tech-button-muted py-3 text-[10px] tracking-widest opacity-60 hover:opacity-100"
-              onClick={() => onJoin(Math.random().toString(36).substring(2, 9), passValue)}
+              onClick={() => onJoin(Math.random().toString(36).slice(2, 9), passValue)}
             >
               CRIAR SALA COM ID ALEATÓRIO
             </button>
@@ -114,7 +114,7 @@ export function RoomEntrance({ value, onChange, passValue, onPassChange, onJoin,
                 >
                   <div>
                     <p className="text-xs font-mono text-[--fg-bright] font-bold">{room.name}</p>
-                    <p className="text-[9px] text-[--muted]">{room.hash.substring(0, 12)}... · {new Date(room.lastSeen).toLocaleDateString('pt-BR')}</p>
+                    <p className="text-[9px] text-[--muted]">{room.hash?.substring(0, 12)}... · {new Date(room.lastSeen).toLocaleDateString('pt-BR')}</p>
                   </div>
                   <button
                     onClick={e => { e.stopPropagation(); onRemoveRecent(room.hash); }}

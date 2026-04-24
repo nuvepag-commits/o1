@@ -151,7 +151,7 @@ export default function App() {
       const id = await hashString(pubKeyJwk);
       setIdentity({ keys, id, alias });
       localStorage.setItem('krypto_alias', alias);
-      addLog(`IDENTIDADE GERADA: ${id.substring(0, 16)}...`);
+      addLog(`IDENTIDADE GERADA: ${id?.substring(0, 16)}...`);
     } catch (err) {
       addLog('ERRO NA GERAÇÃO DE CHAVES.');
     } finally {
@@ -284,7 +284,7 @@ export default function App() {
 
       const finalHash = await hashString(trimmed);
       const hashedPass = password?.trim() ? await hashString(password.trim()) : null;
-      addLog(`CONECTANDO: ${finalHash.substring(0, 8)}...`);
+      addLog(`CONECTANDO: ${finalHash?.substring(0, 8)}...`);
 
       const { data: roomSnap, error: fetchError } = await supabase
         .from('rooms')
