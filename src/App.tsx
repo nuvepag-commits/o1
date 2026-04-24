@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Shield, Hash, Send, Image as ImageIcon,
   Copy, CheckCircle2, Terminal, LogOut,
-  Settings, UserPlus, Clock, Check, X, Key, Search, Mic, Square, Menu
+  Settings, UserPlus, Clock, Check, X, Key, Search, Mic, Square, Menu, QrCode
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import {
