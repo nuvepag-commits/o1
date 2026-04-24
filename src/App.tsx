@@ -348,11 +348,14 @@ export default function App() {
 
   const joinRoom = async (roomId: string, password?: string) => {
     const trimmedId = roomId.trim();
-    if (!trimmedId) { addLog('ID DA SALA INVÁLIDO.'); return; }
+    if (!trimmedId) { addLog('ERRO: ID DA SALA VAZIO.'); return; }
     try {
+      addLog('INICIANDO CONEXÃO SEGURA...');
       const currentUser = await getOrEnsureAuth();
+      if (!currentUser) { addLog('ERRO: FALHA NA AUTENTICAÇÃO.'); return; }
+
       const hashedPass = password?.trim() ? await hashString(password.trim()) : null;
-      addLog(`LOCALIZANDO CANAL: ${trimmedId.substring(0, 8)}...`);
+      addLog(`BUSCANDO CANAL: ${trimmedId.substring(0, 8)}...`);
 
       const { data: roomSnap, error: fetchError } = await supabase
         .from('rooms')
@@ -360,33 +363,40 @@ export default function App() {
         .eq('id', trimmedId)
         .maybeSingle();
 
-      if (!roomSnap) {
-        addLog('SALA NÃO ENCONTRADA. VERIFIQUE O ID.');
-        alert('ID da Sala não encontrado. Peça o ID correto ao proprietário.');
+      if (fetchError) {
+        addLog(`ERRO DE BANCO: ${fetchError.message}`);
         return;
       }
 
-      const derivedKey = await deriveRoomKey(trimmedId, password?.trim());
-      setRoomKey(derivedKey);
-      setRoomName(roomSnap.name);
-      setRoomPassword(password?.trim() || '');
+      if (!roomSnap) {
+        addLog('ERRO: CANAL NÃO ENCONTRADO.');
+        alert('ID do Canal não encontrado. Verifique se copiou o ID completo.');
+        return;
+      }
 
-      addLog('SALA LOCALIZADA. VERIFICANDO ACESSO...');
+      setRoomName(roomSnap.name);
+      addLog(`CANAL ENCONTRADO: ${roomSnap.name}`);
+
+      // Check if already allowed
       if (roomSnap.allowed_users?.includes(currentUser.id)) {
-        addLog('ACESSO AUTORIZADO.');
+        addLog('ACESSO JÁ AUTORIZADO. ENTRANDO...');
         saveRecentRoom(roomSnap.name, trimmedId);
         setRecentRooms(getRecentRooms());
         setRoomHash(trimmedId);
         return;
       }
 
-      if (roomSnap.password_hash && roomSnap.password_hash !== hashedPass) {
-        addLog('SENHA INCORRETA.');
-        alert('Senha incorreta para esta sala.');
-        return;
+      // Check password
+      if (roomSnap.password_hash) {
+        if (!hashedPass || roomSnap.password_hash !== hashedPass) {
+          addLog('ERRO: SENHA INCORRETA.');
+          alert('Senha incorreta para este canal.');
+          return;
+        }
+        addLog('SENHA VALIDADA COM SUCESSO.');
       }
 
-      addLog('ENVIANDO SOLICITAÇÃO AO DONO...');
+      addLog('SOLICITANDO PERMISSÃO AO PROPRIETÁRIO...');
       const { error: reqError } = await supabase
         .from('join_requests')
         .upsert({
@@ -396,15 +406,18 @@ export default function App() {
           status: 'pending'
         }, { onConflict: 'room_id,user_id' });
 
-      if (reqError) throw reqError;
+      if (reqError) {
+        addLog(`ERRO AO PEDIR ACESSO: ${reqError.message}`);
+        throw reqError;
+      }
 
+      addLog('PEDIDO ENVIADO! AGUARDANDO DONO...');
       setIsPendingApproval(true);
       saveRecentRoom(roomSnap.name, trimmedId);
       setRecentRooms(getRecentRooms());
       setRoomHash(trimmedId);
-      addLog('AGUARDANDO APROVAÇÃO.');
     } catch (err: any) {
-      addLog('FALHA AO ENTRAR.');
+      addLog('FALHA CRÍTICA AO ENTRAR.');
       console.error('joinRoom error:', err);
     }
   };
