@@ -71,6 +71,7 @@ export default function App() {
   const [decryptedMessages, setDecryptedMessages] = useState<Record<string, string>>({});
   const [inputRoom, setInputRoom] = useState('');
   const [inputPassword, setInputPassword] = useState('');
+  const [manualKey, setManualKey] = useState('');
   const [messageText, setMessageText] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<JoinRequest[]>([]);
