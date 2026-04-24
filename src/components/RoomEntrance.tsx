@@ -214,8 +214,16 @@ export function RoomEntrance({ value, onChange, passValue, onPassChange, onJoin,
           )}
 
           <div className="pt-2">
-            <button type="submit" className="w-full tech-button py-4 font-bold text-sm tracking-[0.2em] shadow-[0_0_20px_rgba(var(--accent-rgb),0.2)] uppercase">
-              {mode === 'join' ? 'Pedir Acesso ao Canal' : 'Criar Canal Seguro'}
+            <button 
+              type="submit" 
+              className={cn(
+                "w-full py-4 font-bold text-sm tracking-[0.2em] uppercase transition-all flex items-center justify-center gap-3",
+                "bg-[--accent] text-black shadow-[0_0_30px_rgba(var(--accent-rgb),0.4)] hover:shadow-[0_0_40px_rgba(var(--accent-rgb),0.6)]",
+                "active:scale-[0.98]"
+              )}
+            >
+              {mode === 'join' ? <LogIn size={18} /> : <Plus size={18} />}
+              {mode === 'join' ? 'Conectar ao Canal Agora' : 'Criar Canal Seguro'}
             </button>
           </div>
         </form>
