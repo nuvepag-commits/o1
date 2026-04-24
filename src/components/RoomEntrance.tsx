@@ -70,14 +70,16 @@ export function RoomEntrance({ value, onChange, passValue, onPassChange, onJoin,
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 pt-2">
-            <button type="submit" className="tech-button py-3">ENTRAR</button>
+          <div className="space-y-3 pt-4">
+            <button type="submit" className="w-full tech-button py-4 font-bold text-sm tracking-[0.2em] shadow-[0_0_20px_rgba(var(--accent-rgb),0.2)]">
+              ENTRAR NA SALA
+            </button>
             <button
               type="button"
-              className="tech-button-muted py-3"
+              className="w-full tech-button-muted py-3 text-[10px] tracking-widest opacity-60 hover:opacity-100"
               onClick={() => onJoin(Math.random().toString(36).substring(2, 9), passValue)}
             >
-              NOVA SALA
+              CRIAR SALA COM ID ALEATÓRIO
             </button>
           </div>
         </form>
