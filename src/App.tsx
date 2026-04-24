@@ -233,14 +233,33 @@ export default function App() {
     const messagesChannel = supabase
       .channel(`messages:${roomHash}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `room_id=eq.${roomHash}` }, (payload) => {
-        setMessages(prev => [...prev, payload.new as any]);
+        const m = payload.new as any;
+        const mapped: Message = {
+          id: m.id,
+          senderId: m.sender_id,
+          senderAlias: m.sender_alias,
+          content: m.content,
+          type: m.type,
+          timestamp: m.timestamp
+        };
+        setMessages(prev => [...prev, mapped]);
         addLog('NOVA MENSAGEM RECEBIDA.');
       })
       .subscribe();
 
     // Initial Messages Load
     supabase.from('messages').select('*').eq('room_id', roomHash).order('timestamp', { ascending: true }).then(({ data }) => {
-      if (data) setMessages(data as any);
+      if (data) {
+        const mapped = (data as any[]).map(m => ({
+          id: m.id,
+          senderId: m.sender_id,
+          senderAlias: m.sender_alias,
+          content: m.content,
+          type: m.type,
+          timestamp: m.timestamp
+        }));
+        setMessages(mapped);
+      }
     });
 
     // Join Requests Subscription (For Owners)
@@ -536,26 +555,32 @@ export default function App() {
   };
 
   const handleAudioSend = async (blob: Blob) => {
-    if (!roomHash || !user || !roomKey) return;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64 = reader.result as string;
-      try {
-        const encrypted = await encryptText(base64, roomKey);
-        await supabase.from('messages').insert({
-          room_id: roomHash,
-          sender_id: user.id,
-          sender_alias: identity!.alias,
-          content: encrypted,
-          type: 'audio'
-        });
-        addLog('MENSAGEM DE VOZ ENVIADA.');
-      } catch (err: any) {
-        addLog('ERRO AO ENVIAR ÁUDIO.');
-        console.error(err);
-      }
-    };
-    reader.readAsDataURL(blob);
+    try {
+      const currentUser = await getOrEnsureAuth();
+      if (!roomHash || !roomKey) return;
+      
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = reader.result as string;
+        try {
+          const encrypted = await encryptText(base64, roomKey);
+          await supabase.from('messages').insert({
+            room_id: roomHash,
+            sender_id: currentUser.id,
+            sender_alias: identity!.alias,
+            content: encrypted,
+            type: 'audio'
+          });
+          addLog('MENSAGEM DE VOZ ENVIADA.');
+        } catch (err: any) {
+          addLog('ERRO AO ENVIAR ÁUDIO.');
+          console.error(err);
+        }
+      };
+      reader.readAsDataURL(blob);
+    } catch (err) {
+      addLog('FALHA NA AUTENTICAÇÃO DO ÁUDIO.');
+    }
   };
 
   const copyRoomId = () => {
@@ -901,30 +926,62 @@ export default function App() {
                 return (
                   <motion.div
                     key={m.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={cn('flex flex-col max-w-lg', isMe ? 'ml-auto items-end' : 'mr-auto items-start')}
+                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    className={cn('flex flex-col max-w-[85%] md:max-w-lg', isMe ? 'ml-auto items-end' : 'mr-auto items-start')}
                   >
-                    <span className="text-[9px] text-[#404040] mb-1 font-mono">
-                      {m.senderAlias} · {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      {isMe && ' · (você)'}
-                    </span>
+                    <div className="flex items-center gap-2 mb-1 px-1">
+                      <span className={cn("text-[10px] font-bold tracking-wider uppercase", isMe ? "text-[--accent]/60" : "text-orange-500/80")}>
+                        {m.senderAlias || 'Anônimo'}
+                      </span>
+                      <span className="text-[8px] text-[#333] font-mono">
+                        {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {isMe && ' · VOCÊ'}
+                      </span>
+                    </div>
+                    
                     <div className={cn(
-                      'px-4 py-3 text-sm leading-relaxed border-l-2',
-                      isMe ? 'bg-[#1a1a1a] border-[#404040] text-[--fg-bright]' : 'bg-[#111] border-[--accent] text-[--fg-bright]'
+                      'px-4 py-3 text-sm leading-relaxed border-l-2 shadow-lg',
+                      isMe ? 'bg-[#121212] border-[#404040] text-[--fg-bright]' : 'bg-[#0a0a0a] border-[--accent] text-[--fg-bright]'
                     )}>
-                      {m.type === 'text' && (decrypted ?? <span className="animate-pulse text-[--muted]">Descriptografando...</span>)}
-                      {m.type === 'image' && decrypted && (
-                        <div className="flex flex-col gap-1">
-                          <img src={decrypted} alt="img" className="max-w-xs rounded border border-[#262626]" />
-                          <span className="text-[9px] text-[--muted] uppercase tracking-widest">Metadados Removidos</span>
-                        </div>
+                      {m.type === 'text' && (
+                        decrypted ? (
+                          <p className="whitespace-pre-wrap break-words">{decrypted}</p>
+                        ) : (
+                          <div className="flex items-center gap-2 text-[--muted] italic text-xs">
+                            <div className="w-2 h-2 bg-[--accent] rounded-full animate-pulse" />
+                            <span>Descriptografando...</span>
+                          </div>
+                        )
                       )}
-                      {m.type === 'image' && !decrypted && <span className="animate-pulse text-[--muted]">Carregando imagem...</span>}
-                      {m.type === 'audio' && decrypted && (
-                        <audio src={decrypted} controls className="max-w-full h-8" />
+                      
+                      {m.type === 'image' && (
+                        decrypted ? (
+                          <div className="space-y-2">
+                            <img src={decrypted} alt="img" className="max-w-full rounded border border-white/5 cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(decrypted, '_blank')} />
+                            <div className="flex items-center gap-2 text-[8px] text-[--muted] uppercase tracking-[0.2em] pt-1 border-t border-white/5">
+                              <Shield size={8} className="text-[--accent]" /> Proteção de Metadados Ativa
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="w-48 h-32 bg-white/5 animate-pulse flex items-center justify-center text-[10px] text-[--muted]">
+                            CARREGANDO MÍDIA...
+                          </div>
+                        )
                       )}
-                      {m.type === 'audio' && !decrypted && <span className="animate-pulse text-[--muted]">Carregando áudio...</span>}
+
+                      {m.type === 'audio' && (
+                        decrypted ? (
+                          <div className="py-1">
+                            <audio src={decrypted} controls className="max-w-full h-8 brightness-90 contrast-125" />
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-[--muted] italic text-xs">
+                            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                            <span>Processando Áudio Seguro...</span>
+                          </div>
+                        )
+                      )}
                     </div>
                   </motion.div>
                 );
