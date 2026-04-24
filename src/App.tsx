@@ -6,9 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Shield, Hash, Send, Image as ImageIcon,
-  Copy, CheckCircle2, Terminal, LogOut,
-  Settings, UserPlus, Clock, Check, X, Key, Search, Mic, Square, Menu, QrCode, Lock
+  Settings, UserPlus, Clock, Check, X, Key, Search, Mic, Square, Menu, QrCode, Lock, Bell, BellOff
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import {
@@ -84,6 +82,7 @@ export default function App() {
   const [isRecording, setIsRecording] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>(Notification.permission);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -839,6 +838,22 @@ export default function App() {
             </div>
             
             <div className="flex items-center gap-3">
+              <button
+                onClick={async () => {
+                  const p = await Notification.requestPermission();
+                  setNotifPermission(p);
+                  if (p === 'granted') addLog('NOTIFICAÇÕES ATIVADAS.');
+                  else if (p === 'denied') addLog('NOTIFICAÇÕES BLOQUEADAS.');
+                }}
+                className={cn(
+                  "p-2 transition-all rounded bg-[#111]",
+                  notifPermission === 'granted' ? "text-[--accent]" : "text-[--muted] hover:text-white"
+                )}
+                title="Ativar Notificações"
+              >
+                {notifPermission === 'granted' ? <Bell size={18} /> : <BellOff size={18} />}
+              </button>
+
               <div className="flex items-center gap-4 text-[10px] font-mono hidden sm:flex border-r border-[#1a1a1a] pr-4 mr-1">
                 <span className={cn('uppercase', roomData?.ownerId === user?.id ? 'text-[--accent]' : 'text-[--muted]')}>
                   {roomData?.ownerId === user?.id ? 'Proprietário' : 'Membro'}
