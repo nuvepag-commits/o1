@@ -213,13 +213,12 @@ export function RoomEntrance({ value, onChange, passValue, onPassChange, onJoin,
             </motion.div>
           )}
 
-          <div className="pt-2">
+          <div className="pt-2 relative z-50">
             <button 
               type="submit" 
               className={cn(
-                "w-full py-4 font-bold text-sm tracking-[0.2em] uppercase transition-all flex items-center justify-center gap-3",
-                "bg-[--accent] text-black shadow-[0_0_30px_rgba(var(--accent-rgb),0.4)] hover:shadow-[0_0_40px_rgba(var(--accent-rgb),0.6)]",
-                "active:scale-[0.98]"
+                "w-full py-4 font-bold text-sm tracking-[0.2em] uppercase transition-all flex items-center justify-center gap-3 active:scale-[0.98]",
+                "bg-[#00FF41] text-black shadow-[0_0_20px_rgba(0,255,65,0.3)] hover:brightness-110"
               )}
             >
               {mode === 'join' ? <LogIn size={18} /> : <Plus size={18} />}
