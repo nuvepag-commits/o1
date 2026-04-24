@@ -130,9 +130,16 @@ export default function App() {
 
   // Decrypt new messages when roomKey or messages change
   useEffect(() => {
-    if (!roomKey) return;
+    if (!roomKey) {
+      setDecryptedMessages({});
+      return;
+    }
+    
+    // If roomKey exists but we have messages that failed decryption, 
+    // we should re-attempt them. 
+    setDecryptedMessages({}); // Clear cache to force re-decryption with the current key
+
     messages.forEach(async m => {
-      if (decryptedMessages[m.id] !== undefined) return;
       if (m.type !== 'text') return;
       try {
         const plain = await decryptText(m.content, roomKey);
@@ -297,7 +304,7 @@ export default function App() {
         return;
       }
 
-      const derivedKey = await deriveRoomKey(roomSnap.name, password?.trim());
+      const derivedKey = await deriveRoomKey(trimmedId, password?.trim());
       setRoomKey(derivedKey);
       setRoomName(roomSnap.name);
       setRoomPassword(password?.trim() || '');
@@ -361,7 +368,7 @@ export default function App() {
 
       if (insertError) throw insertError;
 
-      const derivedKey = await deriveRoomKey(name, password?.trim());
+      const derivedKey = await deriveRoomKey(randomId, password?.trim());
       setRoomKey(derivedKey);
       setRoomName(name);
       setRoomPassword(password?.trim() || '');

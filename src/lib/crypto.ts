@@ -42,12 +42,11 @@ export async function exportPublicKey(key: CryptoKey): Promise<string> {
 }
 
 /**
- * Derives an AES-GCM key from a room name and optional password.
+ * Derives an AES-GCM key from a room ID (hash) and optional password.
  * This is the shared room key used for E2EE of messages.
- * Anyone who knows the room name (and password) can derive the same key.
  */
-export async function deriveRoomKey(roomName: string, password?: string): Promise<CryptoKey> {
-  const combined = `kryptoanon::${roomName}::${password ?? ''}`;
+export async function deriveRoomKey(roomId: string, password?: string): Promise<CryptoKey> {
+  const combined = `kryptoanon::${roomId}::${password ?? ''}`;
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(combined),
@@ -59,7 +58,6 @@ export async function deriveRoomKey(roomName: string, password?: string): Promis
   return crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      // Fixed salt tied to app domain — not secret, just prevents cross-app reuse
       salt: new TextEncoder().encode('kryptoanon-v1-salt-2024'),
       iterations: 200_000,
       hash: 'SHA-256',
