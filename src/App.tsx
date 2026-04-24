@@ -679,6 +679,34 @@ export default function App() {
             </div>
           </div>
 
+          <div className="p-4 bg-white/5 border-l-2 border-orange-500">
+            <p className="text-[9px] text-orange-500 uppercase tracking-widest mb-3 font-bold">Segurança Mensagens</p>
+            <div className="space-y-2">
+              <input
+                type="password"
+                placeholder="Chave de Descriptografia"
+                className="w-full bg-black border border-[#1a1a1a] text-[10px] px-2 py-1.5 focus:border-orange-500 outline-none"
+                value={roomPassword}
+                onChange={e => setRoomPassword(e.target.value)}
+              />
+              <button
+                onClick={async () => {
+                  if (roomHash) {
+                    const k = await deriveRoomKey(roomHash, roomPassword);
+                    setRoomKey(k);
+                    addLog('CHAVE DE SEGURANÇA ATUALIZADA.');
+                  }
+                }}
+                className="w-full bg-orange-500/10 hover:bg-orange-500/20 text-orange-500 text-[9px] py-1.5 transition-all border border-orange-500/20 font-bold tracking-widest uppercase"
+              >
+                Aplicar Chave
+              </button>
+              <p className="text-[8px] text-[#404040] leading-tight mt-1">
+                Se as mensagens aparecerem como 'Chave Inválida', peça a chave ao dono e aplique aqui.
+              </p>
+            </div>
+          </div>
+
           {/* QR Modal Overlay */}
           <AnimatePresence>
             {showQR && (
