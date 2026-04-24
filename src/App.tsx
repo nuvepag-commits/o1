@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Shield, Hash, Send, Image as ImageIcon,
   Copy, CheckCircle2, Terminal, LogOut,
-  Settings, UserPlus, Clock, Check, X, Key, Search
+  Settings, UserPlus, Clock, Check, X, Key, Search, Mic, Square
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import {
@@ -81,6 +81,9 @@ export default function App() {
   const [copied, setCopied] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [authReady, setAuthReady] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   /** Ensures we have an authenticated Supabase user. Returns the user or throws. */
@@ -411,6 +414,62 @@ export default function App() {
     e.target.value = '';
   };
 
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await handleAudioSend(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      recorder.start();
+      setIsRecording(true);
+      addLog('GRAVANDO ÁUDIO...');
+    } catch (err) {
+      addLog('ERRO AO ACESSAR MICROFONE.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      addLog('PROCESSANDO ÁUDIO...');
+    }
+  };
+
+  const handleAudioSend = async (blob: Blob) => {
+    if (!roomHash || !user || !roomKey) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = reader.result as string;
+      try {
+        const encrypted = await encryptText(base64, roomKey);
+        await supabase.from('messages').insert({
+          room_id: roomHash,
+          sender_id: user.id,
+          sender_alias: identity!.alias,
+          content: encrypted,
+          type: 'audio'
+        });
+        addLog('MENSAGEM DE VOZ ENVIADA.');
+      } catch (err: any) {
+        addLog('ERRO AO ENVIAR ÁUDIO.');
+        console.error(err);
+      }
+    };
+    reader.readAsDataURL(blob);
+  };
+
   const copyRoomId = () => {
     navigator.clipboard.writeText(roomName);
     setCopied(true);
@@ -622,6 +681,10 @@ export default function App() {
                         </div>
                       )}
                       {m.type === 'image' && !decrypted && <span className="animate-pulse text-[--muted]">Carregando imagem...</span>}
+                      {m.type === 'audio' && decrypted && (
+                        <audio src={decrypted} controls className="max-w-full h-8" />
+                      )}
+                      {m.type === 'audio' && !decrypted && <span className="animate-pulse text-[--muted]">Carregando áudio...</span>}
                     </div>
                   </motion.div>
                 );
@@ -636,23 +699,39 @@ export default function App() {
               <div className="flex-1 relative">
                 <input
                   type="text"
-                  placeholder="Mensagem criptografada..."
-                  className="w-full bg-[#0a0a0a] border border-[#262626] px-4 py-3 text-sm font-mono text-[--fg-bright] placeholder-[#333] focus:outline-none focus:border-[--accent]/50 transition-colors pr-24"
+                  placeholder={isRecording ? "Gravando áudio..." : "Mensagem criptografada..."}
+                  className={cn(
+                    "w-full bg-[#0a0a0a] border border-[#262626] px-4 py-3 text-sm font-mono text-[--fg-bright] placeholder-[#333] focus:outline-none focus:border-[--accent]/50 transition-colors pr-24",
+                    isRecording && "border-red-500/50 animate-pulse"
+                  )}
                   value={messageText}
                   onChange={e => setMessageText(e.target.value)}
                   onKeyDown={e => {
                     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(messageText); }
                   }}
+                  disabled={isRecording}
                 />
                 <span className="absolute right-3 top-3.5 text-[#333] font-mono text-[9px] uppercase tracking-widest">AES-256</span>
               </div>
+              
+              <button
+                onClick={isRecording ? stopRecording : startRecording}
+                className={cn(
+                  "p-3 transition-all border border-[#262626]",
+                  isRecording ? "bg-red-500 text-white animate-pulse" : "bg-[#1a1a1a] text-[--muted] hover:bg-[#222] hover:text-white"
+                )}
+              >
+                {isRecording ? <Square size={16} /> : <Mic size={16} />}
+              </button>
+
               <label className="p-3 bg-[#1a1a1a] text-[--muted] cursor-pointer hover:bg-[#222] hover:text-[--fg-bright] transition-colors border border-[#262626]">
                 <ImageIcon size={16} />
-                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={isRecording} />
               </label>
+
               <button
                 onClick={() => handleSendMessage(messageText)}
-                disabled={!messageText.trim()}
+                disabled={!messageText.trim() || isRecording}
                 className="p-3 bg-[--accent] text-black font-bold hover:brightness-90 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <Send size={16} />
