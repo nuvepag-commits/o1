@@ -100,7 +100,7 @@ export async function decryptText(encrypted: string, key: CryptoKey): Promise<st
   return new TextDecoder().decode(decrypted);
 }
 
-/** Strips EXIF/metadata from an image by re-rendering on a canvas */
+/** Strips EXIF/metadata and converts image to WebP format for optimization */
 export async function stripImageMetadata(file: File): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -108,15 +108,34 @@ export async function stripImageMetadata(file: File): Promise<Blob> {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
+        // Max dimension for optimization (e.g., 1200px)
+        const MAX_DIM = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height && width > MAX_DIM) {
+          height *= MAX_DIM / width;
+          width = MAX_DIM;
+        } else if (height > MAX_DIM) {
+          width *= MAX_DIM / height;
+          height = MAX_DIM;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
         const ctx = canvas.getContext('2d');
         if (!ctx) { reject(new Error('Canvas context error')); return; }
-        ctx.drawImage(img, 0, 0);
+        
+        // Use high quality interpolation
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convert to WebP with 0.8 quality
         canvas.toBlob((blob) => {
           if (blob) resolve(blob);
-          else reject(new Error('Blob creation failed'));
-        }, 'image/png');
+          else reject(new Error('WebP conversion failed'));
+        }, 'image/webp', 0.8);
       };
       img.onerror = () => reject(new Error('Image load failed'));
       img.src = e.target?.result as string;
