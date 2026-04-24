@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Shield, Hash, Send, Image as ImageIcon,
   Copy, CheckCircle2, Terminal, LogOut,
-  Settings, UserPlus, Clock, Check, X, Key, Search, Mic, Square, Menu, QrCode
+  Settings, UserPlus, Clock, Check, X, Key, Search, Mic, Square, Menu, QrCode, Lock
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import {
@@ -929,72 +929,14 @@ export default function App() {
               </div>
             )}
             <AnimatePresence initial={false}>
-              {messages.map(m => {
-                const isMe = m.senderId === user?.id;
-                const decrypted = decryptedMessages[m.id];
-                return (
-                  <motion.div
-                    key={m.id}
-                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    className={cn('flex flex-col max-w-[85%] md:max-w-lg', isMe ? 'ml-auto items-end' : 'mr-auto items-start')}
-                  >
-                    <div className="flex items-center gap-2 mb-1 px-1">
-                      <span className={cn("text-[10px] font-bold tracking-wider uppercase", isMe ? "text-[--accent]/60" : "text-orange-500/80")}>
-                        {m.senderAlias || 'Anônimo'}
-                      </span>
-                      <span className="text-[8px] text-[#333] font-mono">
-                        {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        {isMe && ' · VOCÊ'}
-                      </span>
-                    </div>
-                    
-                    <div className={cn(
-                      'px-4 py-3 text-sm leading-relaxed border-l-2 shadow-lg',
-                      isMe ? 'bg-[#121212] border-[#404040] text-[--fg-bright]' : 'bg-[#0a0a0a] border-[--accent] text-[--fg-bright]'
-                    )}>
-                      {m.type === 'text' && (
-                        decrypted ? (
-                          <p className="whitespace-pre-wrap break-words">{decrypted}</p>
-                        ) : (
-                          <div className="flex items-center gap-2 text-[--muted] italic text-xs">
-                            <div className="w-2 h-2 bg-[--accent] rounded-full animate-pulse" />
-                            <span>Descriptografando...</span>
-                          </div>
-                        )
-                      )}
-                      
-                      {m.type === 'image' && (
-                        decrypted ? (
-                          <div className="space-y-2">
-                            <img src={decrypted} alt="img" className="max-w-full rounded border border-white/5 cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(decrypted, '_blank')} />
-                            <div className="flex items-center gap-2 text-[8px] text-[--muted] uppercase tracking-[0.2em] pt-1 border-t border-white/5">
-                              <Lock size={8} className="text-[--accent]" /> Criptografia E2EE + Sem Metadados
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="w-48 h-32 bg-white/5 animate-pulse flex items-center justify-center text-[10px] text-[--muted]">
-                            CARREGANDO MÍDIA...
-                          </div>
-                        )
-                      )}
-
-                      {m.type === 'audio' && (
-                        decrypted ? (
-                          <div className="py-1">
-                            <audio src={decrypted} controls className="max-w-full h-8 brightness-90 contrast-125" />
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 text-[--muted] italic text-xs">
-                            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                            <span>Processando Áudio Seguro...</span>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  </motion.div>
-                );
-              })}
+              {messages.map(m => (
+                <MessageItem 
+                  key={m.id} 
+                  m={m} 
+                  isMe={m.senderId === user?.id} 
+                  decrypted={decryptedMessages[m.id]} 
+                />
+              ))}
             </AnimatePresence>
             <div ref={messagesEndRef} />
           </main>
@@ -1048,3 +990,77 @@ export default function App() {
       </div>
     );
   }
+
+// ─── Sub-components ───────────────────────────────────
+
+function MessageItem({ m, isMe, decrypted }: { m: Message, isMe: boolean, decrypted: string | undefined }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      className={cn('flex flex-col max-w-[85%] md:max-w-lg', isMe ? 'ml-auto items-end' : 'mr-auto items-start')}
+    >
+      <div className="flex items-center gap-2 mb-1 px-1">
+        <span className={cn("text-[10px] font-bold tracking-wider uppercase", isMe ? "text-[--accent]/60" : "text-orange-500/80")}>
+          {m.senderAlias || 'Anônimo'}
+        </span>
+        <span className="text-[8px] text-[#333] font-mono">
+          {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {isMe && ' · VOCÊ'}
+        </span>
+      </div>
+      
+      <div className={cn(
+        'px-4 py-3 text-sm leading-relaxed border-l-2 shadow-lg overflow-hidden',
+        isMe ? 'bg-[#121212] border-[#404040] text-[--fg-bright]' : 'bg-[#0a0a0a] border-[--accent] text-[--fg-bright]'
+      )}>
+        {m.type === 'text' && (
+          decrypted ? (
+            <p className="whitespace-pre-wrap break-words">{decrypted}</p>
+          ) : (
+            <div className="flex items-center gap-2 text-[--muted] italic text-xs">
+              <div className="w-2 h-2 bg-[--accent] rounded-full animate-pulse" />
+              <span>Descriptografando...</span>
+            </div>
+          )
+        )}
+        
+        {m.type === 'image' && (
+          decrypted ? (
+            <div className="space-y-2">
+              <img 
+                src={decrypted} 
+                alt="img" 
+                className="max-w-full rounded border border-white/5 cursor-pointer hover:opacity-90 transition-opacity" 
+                onClick={() => window.open(decrypted, '_blank')} 
+                onError={(e) => {
+                  (e.target as any).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="%23111"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white" font-size="10">ERRO AO CARREGAR</text></svg>';
+                }}
+              />
+              <div className="flex items-center gap-2 text-[8px] text-[--muted] uppercase tracking-[0.2em] pt-1 border-t border-white/5">
+                <Lock size={8} className="text-[--accent]" /> Criptografia E2EE + Sem Metadados
+              </div>
+            </div>
+          ) : (
+            <div className="w-48 h-32 bg-white/5 animate-pulse flex items-center justify-center text-[10px] text-[--muted]">
+              CARREGANDO MÍDIA...
+            </div>
+          )
+        )}
+
+        {m.type === 'audio' && (
+          decrypted ? (
+            <div className="py-1">
+              <audio src={decrypted} controls className="max-w-full h-8 brightness-90 contrast-125" />
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-[--muted] italic text-xs">
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              <span>Processando Áudio Seguro...</span>
+            </div>
+          )
+        )}
+      </div>
+    </motion.div>
+  );
+}

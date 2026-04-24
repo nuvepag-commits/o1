@@ -105,7 +105,7 @@ export async function stripImageMetadata(file: File): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      const img = new Image();
+      const img = document.createElement('img');
       img.onload = () => {
         const canvas = document.createElement('canvas');
         // Max dimension for optimization (e.g., 1200px)
