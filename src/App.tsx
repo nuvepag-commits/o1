@@ -223,6 +223,11 @@ export default function App() {
       }
     });
 
+    // Request Notification Permission
+    if (Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
     // Messages Subscription
     const messagesChannel = supabase
       .channel(`messages:${roomHash}`)
@@ -238,6 +243,14 @@ export default function App() {
         };
         setMessages(prev => [...prev, mapped]);
         addLog('NOVA MENSAGEM RECEBIDA.');
+
+        // Trigger Notification if not focused
+        if (document.visibilityState !== 'visible' && Notification.permission === 'granted') {
+          new Notification('KryptoAnon', {
+            body: `Nova mensagem de ${m.sender_alias}`,
+            icon: '/favicon.svg'
+          });
+        }
       })
       .subscribe();
 
